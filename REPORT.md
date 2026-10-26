@@ -282,18 +282,73 @@ placeholder survives. The discarded run is described here rather than deleted, b
 the failure mode — an instrument error that looks exactly like the result you expect —
 is the one this repo exists to make visible.
 
+# E2e: ten sessions per arm, 2026-10-25
+
+The 40s cell repeated ten times per arm — thirty sessions, 360 records — because
+E2d could only say "a direction". Records:
+[`bench/results/e2e-40s.json`](bench/results/e2e-40s.json), intervals from
+`bench/analyze.mjs`, which resamples sessions.
+
+## Result
+
+| arm | premature starts | 95% CI (sessions) | sessions with a premature start | started | starved | utilisation |
+|---|---|---|---|---|---|---|
+| blind | **46/120 (38%)** | 29–48% | 10 of 10 | 116/120 | 0 | 108% |
+| aware | **8/120 (7%)** | 3–10% | 7 of 10 | 85/120 | 0 | 63% |
+| gated | **0/120 (0%)** | none in 10 sessions | 0 of 10 | 76/120 | 0 | 52% |
+
+Per session, the shape behind the rates:
+
+| arm | wall clock, median (min–max) | time past the bell, total | premature starts per session |
+|---|---|---|---|
+| blind | 65s (51–95s) against a 40s budget | **316.9s** | 3,4,7,7,6,4,3,7,2,3 |
+| aware | 46s (39–53s) | 57.9s | 1,2,0,0,0,1,1,1,1,1 |
+| gated | 42s (39–46s) | 18.9s | 0,0,0,0,0,0,0,0,0,0 |
+
+## What this establishes
+
+**The ordering is no longer a single-session artefact.** Blind 38% [29–48] and aware
+7% [3–10] do not overlap; gated had no premature start in ten sessions, and the
+events are spread across aware's sessions rather than concentrated in one (seven
+sessions with one, one with two). This is the first cell in the series with enough
+sessions to carry an interval, and the direction from E1 survives it at a budget
+where several decisions per session are at risk.
+
+**The trade is now priced.** The gate starts 9 fewer tasks than the clock (76 against
+85) and converts that into 8 fewer premature starts, plus about 11 points of
+utilisation (52% against 63%) — roughly one completed task given up per premature
+start avoided. Blind is the only arm whose utilisation exceeds 100%, and it gets
+there by spending 316.9s past the bell across ten sessions.
+
+**Nothing here rescues the original thesis.** The gate is strict dominance over the
+clock on this metric, but the clock alone removes five sixths of the blind failure
+(38% → 7%). The gate's remaining job is the last 7%, and it pays a third of the work
+for it.
+
+## Limits
+
+- Still one model, one harness, one task set, and task costs printed exactly in the
+  list, so every arm can do the arithmetic. Real forecasts miss by 2.6–3.8×, which
+  would hurt the gate and the clock alike — E3 is the experiment for that.
+- "None in 10 sessions" is not zero: at a session level, ten clean sessions are
+  consistent with an event rate up to about 26%. It bounds the gate's failure rate,
+  it does not measure it at zero.
+- The blind arm's 108% utilisation is not effort, it is overrun: the same work
+  measured against a budget that had already expired.
+
 ## Next
 
-1. **E2e** — repeats of the 40s cell (≥10 sessions per arm) to turn 25% → 8% → 0% from
-   three sessions into a rate, now that every session holds several at-risk decisions.
+1. **E2f** — the same ten-session cell with *wrong* estimates (multiply the stated
+   costs by the bias AgentTime measured), so the gate's p90 calibration is tested
+   rather than assumed.
 2. **Separate continuity from clock cost** — a per-session aware arm whose clock costs
-   a fresh turn, to test the mechanism above directly rather than by inference.
-3. **E4** — repeat E1 and E2b under a second harness, since AgentTime found model
+   a fresh turn, to test the mechanism directly rather than by inference.
+3. **E4** — repeat E1 and E2e under a second harness, since AgentTime found model
    effects dominate harness effects (slopes moved 0.14–0.16 by harness, 0.69–0.71 by
    model).
 4. **E3** — five real sessions through `plan`/`done`/`report`, to see whether the
    per-class bias converges enough to replace the hand-written estimate the gate
-   currently receives.
+   currently receives; `check --for <class>` is now the consumer of that number.
 
 Replication is one command; the file name carries the date:
 
@@ -312,4 +367,10 @@ node bench/run.mjs --adapter cli --invocation per-session --scenario session \
 node bench/run.mjs --adapter cli --invocation per-session --scenario session \
   --tasks bench/tasks/e2.json --budget 60s --reserve 1000ms --repeats 3 \
   --arms blind,aware,gated --out bench/results/e2c-60s.json
+
+# E2e
+node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+  --tasks bench/tasks/e2.json --budget 40s --reserve 1000ms --repeats 10 \
+  --arms blind,aware,gated --out bench/results/e2e-40s.json
+node bench/analyze.mjs bench/results/e2e-40s.json
 ```

@@ -17,11 +17,11 @@ If that is false — if a clock alone produces the same behaviour — then the t
 here is wrong and this repo should say so in public, because the entire field is
 currently shipping clocks.
 
-**E2b and E2c qualified it, and the qualification is the more useful sentence.** With
-one agent invocation per session instead of one per task, a cheap clock *is*
-consulted: over three repeats at a 60s budget the aware arm fell from 10/12
-premature starts to **1/36 (3%)**, against blind at 6/36 (17%) — and the gate still
-went one better at **0/36**, for about 8 points of utilisation. So the claim as
+**E2b through E2e qualified it, and the qualification is the more useful sentence.**
+With one agent invocation per session instead of one per task, a cheap clock *is*
+consulted. Over ten sessions per arm at a 40s budget: **blind 38% [29–48], aware 7%
+[3–10], gated 0 in ten sessions** — the gate still wins, the clock does five sixths
+of the work, and the gate pays about a third of the completed tasks for the rest. So the claim as
 written holds in a per-task harness — the shape most agent benchmarks use — and
 mostly fails in a continuous session, where the gate keeps a small residual edge
 instead of being the only thing that works. What survives is narrower and testable:
@@ -144,6 +144,7 @@ seconds, so budgets in the tens of seconds stop being startup measurements.
 | E2b | does the ladder survive paying startup once, in one invocation? | session, 12 tasks, 3 arms × 2 budgets (60s, 120s), per-session invocation | 6 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2c | does the E2b reading survive repetition? | 60s cell × 3 repeats, 3 arms | 108 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2d | does the ordering hold where several decisions per session are at risk? | 40s cell, 3 arms, 1 repeat | 36 | **run** — see [`REPORT.md`](REPORT.md) |
+| E2e | is the ordering a rate with an interval, not a single session? | 40s cell, 3 arms, 10 repeats | 360 | **run** — blind 38% [29–48], aware 7% [3–10], gated none in 10 sessions |
 | E3 | does the calibration loop make the gate's estimates honest? | ledger bias per class over ≥5 sessions | — | instrument built, needs use |
 | E4 | does the effect hold across models? | E2 with a second harness | 324 | not run |
 

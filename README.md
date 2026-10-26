@@ -133,15 +133,14 @@ The reasoning behind the protocol, the confounds, and what would falsify it are 
 - **E2**, 108 runs over twelve tasks at three budgets: **42% premature starts for
   both blind and aware, 0% for gated** — at the cost of refusing half the offers and
   leaving up to 38% of the budget idle. Read the two numbers together.
-- **E2b / E2c**, the same ladder with one invocation per session: per-decision overhead
-  fell from 8–12s to 1–3s, and at a 60s budget premature starts went **blind 6/36
-  (17%) → aware 1/36 (3%) → gated 0/36**, the gate paying ~8 points of utilisation.
-  A cheap clock does most of the work a gate did in E2; the gate closes the rest.
-  E2c is the repeat that corrected an over-read E2b, and `REPORT.md` says so first
-  rather than last. **E2d** repeats the ordering at a 40s budget (25% → 8% → 0%), and
-  documents the prompt bug it caught: a `<cost in ms>` placeholder that made the gate
-  refuse an entire session, which read exactly like a real result until the
-  transcript was opened.
+- **E2b–E2e**, one invocation per session: per-decision overhead fell from 8–12s to
+  ~2.5s. Ten sessions per arm at a 40s budget, with session-bootstrap intervals:
+  **blind 38% [29–48], aware 7% [3–10], gated none in ten sessions** (0/120 records).
+  A cheap clock does most of what a gate did in E2; the gate closes the rest at about
+  a third of the completed tasks. `REPORT.md` also documents the prompt bug E2d
+  caught — a `<cost in ms>` placeholder that made the gate refuse a whole session and
+  read exactly like a real result — and the E2c repeat that corrected an over-read
+  E2b.
 
 ## Contract
 
