@@ -18,7 +18,13 @@ const secs = (ms) => `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s`;
 
 // The task list is data, not prompt steering: every arm gets the same list, the
 // same costs and the same commands. Only the time tool differs.
-export function prompt({ tasks, arm, tool, reserveMs, workDir }) {
+//
+// `estimateScale` inflates or deflates the cost every arm is *told*. The true cost
+// stays in the records; only the information the agent acts on changes, which is
+// what an experiment about bad forecasts needs (E2f).
+export const declaredCost = (task, scale = 1) => Math.round(task.trueCostMs * scale);
+
+export function prompt({ tasks, arm, tool, reserveMs, workDir, estimateScale = 1 }) {
   const lines = [
     `You are working in this directory: ${workDir}`,
     "",
@@ -28,7 +34,7 @@ export function prompt({ tasks, arm, tool, reserveMs, workDir }) {
     "",
     ...tasks.map(
       (task, index) =>
-        `  ${index + 1}. ${task.id} (${task.class ?? "untagged"}, about ${secs(task.trueCostMs)}): ` +
+        `  ${index + 1}. ${task.id} (${task.class ?? "untagged"}, about ${secs(declaredCost(task, estimateScale))}): ` +
         `${task.command.join(" ")}  — run in tasks/${task.id}/`,
     ),
     "",
@@ -48,7 +54,7 @@ export function prompt({ tasks, arm, tool, reserveMs, workDir }) {
       "Before starting each task, run exactly this, with that task's own cost:",
       ...tasks.map(
         (task) =>
-          `  ${task.id}: node ${tool} check --needs ${task.trueCostMs}ms --reserve ${reserveMs}ms`,
+          `  ${task.id}: node ${tool} check --needs ${declaredCost(task, estimateScale)}ms --reserve ${reserveMs}ms`,
       ),
       "Exit 0 means it fits in the remaining budget; exit 2 means it does not.",
       "If it does not fit, skip that task and go on to the next one. Do not run a",
@@ -117,7 +123,7 @@ export function readSession({ tasks, workDir, sessionEnd, sessionStart, sessionB
   });
 }
 
-export async function run({ tasks, arm, tool, reserveMs, workDir, cmd, capMs, statePath, sessionStart, sessionBudgetMs }) {
+export async function run({ tasks, arm, tool, reserveMs, workDir, cmd, capMs, statePath, sessionStart, sessionBudgetMs, estimateScale = 1 }) {
   materialise(tasks, workDir);
   const args = [...cmd, "-C", workDir, "-"];
   const child = spawn(cmd[0], args.slice(1), {
@@ -138,7 +144,7 @@ export async function run({ tasks, arm, tool, reserveMs, workDir, cmd, capMs, st
 
   const code = await new Promise((resolve) => {
     child.on("close", resolve);
-    child.stdin.end(`${prompt({ tasks, arm, tool, reserveMs, workDir })}\n`);
+    child.stdin.end(`${prompt({ tasks, arm, tool, reserveMs, workDir, estimateScale })}\n`);
   });
   clearTimeout(timer);
   const sessionEnd = Date.now();

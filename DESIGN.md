@@ -107,7 +107,17 @@ decisions, which is both cheaper and closer to a real session.
 $ node bench/run.mjs --adapter cli --invocation per-session --scenario session \
     --tasks bench/tasks/e2.json --budget 120s --arms blind,aware,gated \
     --out bench/results/e2b-120s.json
+
+# the same cell with a forecast that misses, as real ones do
+$ node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+    --tasks bench/tasks/e2.json --budget 40s --estimate-scale 2.6 \
+    --repeats 10 --arms blind,aware,gated --out bench/results/e2f-40s.json
 ```
+
+`--estimate-scale` multiplies the cost every arm is *told*, while the records keep
+the measured cost. A run at 2.6 is the forecast miss AgentTime measured, and it tests
+the calibration rather than assuming the estimate is true — E2e's one remaining
+freebie.
 
 `bench/analyze.mjs` turns a result file into a rate with a 95% interval that resamples
 **sessions**, not records: twelve records from one session are one observation of a

@@ -124,6 +124,40 @@ test("per-session pays one invocation and still separates the arms", async () =>
   assert.equal(blindPayload.records[1].afterExpiry, true, "the pot is gone by task two");
   assert.match(blind.stdout, /s per decision/, "the run reports its own deciding cost");
 
+  // A scaled estimate changes what the agent is told, never what is measured.
+  const scaled = await new Promise((resolve) => {
+    const outFile = join(dir, "scaled.json");
+    execFile(
+      process.execPath,
+      [
+        bench,
+        "--adapter",
+        "scripted",
+        "--scenario",
+        "session",
+        "--invocation",
+        "per-session",
+        "--tasks",
+        taskFile,
+        "--budget",
+        "2s",
+        "--arms",
+        "blind",
+        "--estimate-scale",
+        "2.5",
+        "--out",
+        outFile,
+      ],
+      { timeout: 60_000 },
+      (err) => resolve({ code: err ? err.code : 0, outFile }),
+    );
+  });
+  assert.equal(scaled.code, 0);
+  const scaledPayload = JSON.parse(readFileSync(scaled.outFile, "utf8"));
+  assert.equal(scaledPayload.estimateScale, 2.5);
+  assert.equal(scaledPayload.records[0].trueCostMs, 400);
+  assert.equal(scaledPayload.records[0].declaredCostMs, 1000, "2.5x of 400ms, rounded");
+
   const gated = await runArm("gated");
   assert.equal(gated.code, 0, gated.stderr);
   const gatedPayload = JSON.parse(readFileSync(gated.outFile, "utf8"));

@@ -49,6 +49,13 @@ const capDefault =
     ? `${Math.ceil((budgetMs + Math.max(240_000, budgetMs)) / 1000)}s`
     : `${Math.ceil((budgetMs * 2) / 1000)}s`;
 const capMs = parseDuration(flag("--cap", capDefault));
+// Multiplies the cost the agent is told, leaving the measured cost alone: a run
+// with 2.6 models the forecast miss AgentTime found instead of a perfect estimate.
+const estimateScale = Number(flag("--estimate-scale", "1"));
+if (!Number.isFinite(estimateScale) || estimateScale <= 0) {
+  console.error(`--estimate-scale must be a positive number (got ${flag("--estimate-scale", "1")})`);
+  process.exit(64);
+}
 
 if (!["session", "refusal"].includes(scenario)) {
   console.error(`unknown scenario: ${scenario} (session or refusal)`);
@@ -141,6 +148,7 @@ function sessionRecord({ task, arm, sessionId, sessionBudgetMs, result }) {
     remainingAtStartMs: Math.max(0, result.remainingAtStartMs),
     afterExpiry: result.remainingAtStartMs <= 0,
     trueCostMs: task.trueCostMs,
+    declaredCostMs: Math.round(task.trueCostMs * estimateScale),
     started: result.started,
     finished: result.finished,
     runtimeMs: result.runtimeMs,
@@ -169,6 +177,7 @@ if (scenario === "session" && invocation === "per-session") {
         capMs,
         sessionStart,
         sessionBudgetMs: budgetMs,
+        estimateScale,
       });
       for (const result of outcome.results) {
         records.push(
@@ -296,6 +305,7 @@ if (out) {
     capMs,
     budgetMs,
     reserveMs,
+    estimateScale,
     repeats,
     tasks: tasks.map((t) => ({ id: t.id, class: t.class, trueCostMs: t.trueCostMs })),
     summary: rows,
