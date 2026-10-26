@@ -109,6 +109,12 @@ $ node bench/run.mjs --adapter cli --invocation per-session --scenario session \
     --out bench/results/e2b-120s.json
 ```
 
+`bench/analyze.mjs` turns a result file into a rate with a 95% interval that resamples
+**sessions**, not records: twelve records from one session are one observation of a
+policy, and a binomial interval over them would be far too narrow. A cell with one
+session per arm therefore prints its limit in the interval column, and a cell with no
+premature starts prints "none in N sessions" rather than a point at zero.
+
 `--adapter scripted` replaces the model with three deterministic policies (always
 start / check then start / gate), in both invocations. It exists so the instrument
 can be tested in CI without tokens. Its numbers are an upper bound on what the gate
