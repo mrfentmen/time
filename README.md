@@ -145,7 +145,9 @@ The reasoning behind the protocol, the confounds, and what would falsify it are 
 - **E2g**, estimates inflated 2.6× so they miss the way real ones do: a gate that
   trusts the number starts 17/36 offers, the same gate priced from measured p90
   starts 22/36 with the same zero premature starts, and the clock arm collapses to
-  18% utilisation. Calibration is worth about a quarter of the session.
+  18% utilisation. With the ledger jittered ±40% (E2h pilot) the calibrated arm still
+  starts 18% more work, and the noise shows up as one starved refusal rather than a
+  half-finished task.
 
 ## Contract
 

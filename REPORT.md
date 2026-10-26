@@ -391,11 +391,42 @@ separate those two intervals, which is exactly why E2e used ten.
 - Three sessions per arm: the calibrated-arm gain is +5 decisions, not a rate.
 - Same model, harness, and synthetic tasks as the rest of the series.
 
+# E2h (pilot): a noisy ledger, and the gain that survives it
+
+E2g's seed ledger held each task's exact measured cost, which is hindsight, not
+history. This run jitters every seeded actual by up to ±40% — deterministically, from
+a hash of the task id — and repeats the two gate arms five times each. Same 40s
+budget, same 2.6× estimates.
+
+120 records: [`bench/results/e2h-40s-noisy-ledger.json`](bench/results/e2h-40s-noisy-ledger.json).
+
+| arm | started | per session | premature | starved | utilisation |
+|---|---|---|---|---|---|
+| gated (trusts 2.6× estimate) | 28/60 | 6,7,5,4,6 | 0 | 1 | 31% |
+| gated-cal (noisy p90) | **33/60** | 7,8,7,4,7 | 0 | 1 | 41% |
+
+## What survives, and what it costs
+
+**The gain survives the noise, smaller.** +18% more decisions than the uncalibrated
+gate (33 against 28), against +29% with an exact ledger in E2g, and utilisation rises
+31% → 41%. Calibration does not need perfect history to be worth doing; it needs
+history that is better than a 2.6× guess, which a ledger of any decent size is.
+
+**Noise shows up as the first starved refusal.** The calibrated arm refused one offer
+that would have fitted; a p90 computed from ±40% jittered durations sometimes
+overstates the class and the gate declines work it could have taken. E2g's exact
+ledger had none. That is the right shape of cost for this tool: noise in the estimate
+turns into idle time, not into a half-finished task.
+
+**Five sessions, one model.** This is a pilot for a ten-repeat cell, not the cell
+itself: both arms are at zero premature starts, so the comparison here is work done,
+not risk avoided.
+
 ## Next
 
-1. **E2h** — repeat this cell with a *noisy* seed ledger (jitter each historical
-   duration by ±40%) and ten repeats, so calibration is tested against history as
-   messy as a real one rather than the exact costs it was trained on.
+1. **E2i** — this cell at ten repeats per arm, with a ledger built from *real*
+   `plan`/`done` sessions rather than jittered seed data (E3's data, once there is
+   some).
 2. **E2f** — the same ten-session cell with wrong estimates but no calibrated arm,
    to isolate how much of E2e's result depends on the estimates being exact.
 3. **Separate continuity from clock cost** — a per-session aware arm whose clock costs
