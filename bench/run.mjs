@@ -95,6 +95,7 @@ async function runOne({ task, arm, sessionStart, sessionBudgetMs, remainingMs, s
     budgetMs: sessionBudgetMs,
     reserveMs,
     remainingAtStartMs: Math.max(0, remainingMs),
+    afterExpiry: remainingMs <= 0,
     trueCostMs: task.trueCostMs,
     started: result.started,
     finished: result.finished,
@@ -111,9 +112,11 @@ if (scenario === "session") {
     for (let repeat = 0; repeat < repeats; repeat++) {
       const sessionStart = Date.now();
       const sessionBudgetMs = budgetMs;
+      // Every arm is offered every task, even after the pot is empty: "did it keep
+      // starting work with nothing left?" is the sharpest form of the question,
+      // and stopping early would hide it behind a truncated session.
       for (const task of tasks) {
         const remainingMs = sessionStart + sessionBudgetMs - Date.now();
-        if (remainingMs <= 0) break;
         records.push(
           await runOne({
             task,
@@ -158,13 +161,14 @@ console.log(
   `\n${scenario} · ${adapterName} · ${tasks.length} tasks · ${repeats} repeat(s) · ` +
     `budget ${scenario === "session" ? formatDuration(budgetMs) : "80% of each task"}\n`,
 );
-const header = ["arm", "n", "started", "premature", "starved", "completed", "overran", "median overrun", "utilisation"];
+const header = ["arm", "n", "started", "after expiry", "premature", "starved", "completed", "overran", "median overrun", "utilisation"];
 const table = [
   header,
   ...rows.map((row) => [
     row.arm,
     String(row.n),
     String(row.started),
+    String(row.startedAfterExpiry),
     `${row.prematureStarts} (${pct(row.prematureStartRate)})`,
     `${row.starvedRefusals} (${pct(row.starvedRefusalRate)})`,
     String(row.completed),

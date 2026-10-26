@@ -101,8 +101,12 @@ node bench/run.mjs --adapter cli --scenario refusal --tasks bench/tasks/refusal.
 ```
 
 The reasoning behind the protocol, the confounds, and what would falsify it are in
-[`DESIGN.md`](DESIGN.md). The first live run — nine runs, one task, one model — is in
-[`REPORT.md`](REPORT.md): blind 3/3 premature starts, aware 3/3, gated 0/3.
+[`DESIGN.md`](DESIGN.md). The live runs are in [`REPORT.md`](REPORT.md):
+
+- **E1**, nine runs on one task: blind 3/3 premature starts, aware 3/3, gated 0/3.
+- **E2**, 108 runs over twelve tasks at three budgets: **42% premature starts for
+  both blind and aware, 0% for gated** — at the cost of refusing half the offers and
+  leaving up to 38% of the budget idle. Read the two numbers together.
 
 ## Contract
 

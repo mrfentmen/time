@@ -87,12 +87,25 @@ start / check then start / gate). It exists so the instrument can be tested in C
 without tokens. Its numbers are an upper bound on what the gate can do, never a
 result.
 
+### The latency constraint
+
+A decision costs the agent 8–12s of wall clock before any work happens, and that
+overhead is charged to the same pot. E2 measured it directly: after one 1s task in a
+20s session, 12.4s of the budget was gone. So a budget within an order of magnitude
+of one decision's latency measures startup, not judgement, and the gate inherits the
+artefact — it compares `cost + reserve` against a remaining time the agent's own
+thinking has already spent.
+
+The rule for any future run: **budget ≥ 10× per-decision latency**, or one agent
+invocation per session so that overhead is paid once rather than per task. The
+second is the better design and the one E2b should use.
+
 ## Experiments
 
 | # | question | design | n | status |
 |---|---|---|---|---|
 | E1 | does the gate change whether work is started? | refusal, 1 task, 3 arms × 3 repeats | 9 | **run** — see [`REPORT.md`](REPORT.md) |
-| E2 | does that hold across a session with real choices? | session, 12 tasks, 3 arms × 3 durations × 3 repeats | 324 | not run |
+| E2 | does that hold across a session with real choices? | session, 12 tasks, 3 arms × 3 budgets × 1 repeat | 108 | **run** — see [`REPORT.md`](REPORT.md) |
 | E3 | does the calibration loop make the gate's estimates honest? | ledger bias per class over ≥5 sessions | — | instrument built, needs use |
 | E4 | does the effect hold across models? | E2 with a second harness | 324 | not run |
 

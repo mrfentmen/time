@@ -1,0 +1,158 @@
+[
+  {
+    "id": "t01-build",
+    "class": "build",
+    "trueCostMs": 1000,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 1000);\n"
+    }
+  },
+  {
+    "id": "t02-test",
+    "class": "test",
+    "trueCostMs": 1500,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 1500);\n"
+    }
+  },
+  {
+    "id": "t03-edit",
+    "class": "edit",
+    "trueCostMs": 2000,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 2000);\n"
+    }
+  },
+  {
+    "id": "t04-migration",
+    "class": "migration",
+    "trueCostMs": 2500,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 2500);\n"
+    }
+  },
+  {
+    "id": "t05-deploy",
+    "class": "deploy",
+    "trueCostMs": 3000,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 3000);\n"
+    }
+  },
+  {
+    "id": "t06-docs",
+    "class": "docs",
+    "trueCostMs": 3500,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 3500);\n"
+    }
+  },
+  {
+    "id": "t07-review",
+    "class": "review",
+    "trueCostMs": 4000,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 4000);\n"
+    }
+  },
+  {
+    "id": "t08-lint",
+    "class": "lint",
+    "trueCostMs": 4500,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 4500);\n"
+    }
+  },
+  {
+    "id": "t09-seed",
+    "class": "seed",
+    "trueCostMs": 5000,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 5000);\n"
+    }
+  },
+  {
+    "id": "t10-smoke",
+    "class": "smoke",
+    "trueCostMs": 5500,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 5500);\n"
+    }
+  },
+  {
+    "id": "t11-docs",
+    "class": "docs",
+    "trueCostMs": 6000,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 6000);\n"
+    }
+  },
+  {
+    "id": "t12-deploy",
+    "class": "deploy",
+    "trueCostMs": 7000,
+    "prompt": "Run `node work.mjs` once in this directory and report the line it printed.",
+    "command": [
+      "node",
+      "work.mjs"
+    ],
+    "files": {
+      "work.mjs": "import { writeFileSync } from \"node:fs\";\nwriteFileSync(\".started\", String(Date.now()));\nsetTimeout(() => {\n  writeFileSync(\".done\", String(Date.now()));\n  console.log(\"task ok\");\n}, 7000);\n"
+    }
+  }
+]
