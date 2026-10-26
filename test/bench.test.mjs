@@ -109,7 +109,7 @@ test("per-session pays one invocation and still separates the arms", async () =>
         ],
         { timeout: 60_000 },
         (err, stdout, stderr) =>
-          resolve({ code: err ? err.code : 0, stderr, outFile }),
+          resolve({ code: err ? err.code : 0, stdout, stderr, outFile }),
       );
     });
 
@@ -122,6 +122,7 @@ test("per-session pays one invocation and still separates the arms", async () =>
   assert.equal(blindPayload.sessions[0].arm, "blind");
   assert.ok(blindPayload.records.every((r) => r.started));
   assert.equal(blindPayload.records[1].afterExpiry, true, "the pot is gone by task two");
+  assert.match(blind.stdout, /s per decision/, "the run reports its own deciding cost");
 
   const gated = await runArm("gated");
   assert.equal(gated.code, 0, gated.stderr);

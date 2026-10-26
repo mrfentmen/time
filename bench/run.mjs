@@ -266,6 +266,27 @@ console.log(
     "\nstarted   can exceed n for refused tasks: a refusal costs no time, so the session goes on.\n",
 );
 
+// The confound that moved E2's numbers: time spent deciding, charged to the same
+// pot as the work. It is cheap here to report it per arm, and the instrument that
+// changes its own result should measure the term that changed it.
+if (sessionLogs.length > 0) {
+  console.log("deciding time = session wall clock minus work, per decision taken:");
+  for (const arm of arms) {
+    const logs = sessionLogs.filter((log) => log.arm === arm);
+    const wallMs = logs.reduce((sum, log) => sum + log.wallClockMs, 0);
+    const armRecords = records.filter((record) => record.arm === arm);
+    const workMs = armRecords.reduce((sum, record) => sum + record.runtimeMs, 0);
+    const decisions = armRecords.filter((record) => record.started).length;
+    const pastBellMs = logs.reduce((sum, log) => sum + Math.max(0, log.wallClockMs - budgetMs), 0);
+    console.log(
+      `  ${arm.padEnd(6)} ${logs.length} session(s) · wall ${(wallMs / 1000).toFixed(1)}s · ` +
+        `${(pastBellMs / 1000).toFixed(1)}s past the bell · ` +
+        `${decisions === 0 ? "—" : `${((wallMs - workMs) / decisions / 1000).toFixed(1)}s per decision`}`,
+    );
+  }
+  console.log("");
+}
+
 if (out) {
   const payload = {
     generatedAt: new Date().toISOString(),
