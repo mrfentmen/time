@@ -5,6 +5,8 @@
 //   check                 elapsed and remaining; exit 2 once it is spent
 //   check --needs 8m      exit 0 only if 8m of work *and* a reserve for
 //                         verifying it still fit in what is left
+//   check --for review    same, with the cost read from the ledger instead of a
+//                         guess: the 90th percentile actual for that class
 //   plan <label> --estimate 8m [--class build]
 //                         record an intention to do something that big
 //   done [--status ok|failed]
@@ -39,7 +41,7 @@ const defaultReserveMs = 3 * 60_000;
 function usage(message) {
   console.error(message);
   console.error(
-    "usage: time.mjs start | check [--needs <dur>] [--reserve <dur>]\n" +
+    "usage: time.mjs start | check [--needs <dur> | --for <class>] [--reserve <dur>]\n" +
       "       time.mjs plan <label> --estimate <dur> [--class <name>]\n" +
       "       time.mjs done [--status ok|failed] | time.mjs report [--json]\n" +
       "       durations: 90s, 8m, 1h30m, or a bare number of minutes",
@@ -180,8 +182,37 @@ if (cmd === "report") {
 
 if (cmd !== "check") usage(`unknown command: ${cmd}`);
 
-const flags = parseFlags(rest, ["--needs", "--reserve"]);
-const needs = flags["--needs"] === undefined ? null : durationFlag(flags, "--needs");
+const flags = parseFlags(rest, ["--needs", "--reserve", "--for"]);
+if (flags["--for"] !== undefined && flags["--needs"] !== undefined) {
+  usage("--for takes the cost from the ledger; do not pass --needs as well");
+}
+
+// The gate's job is to compare what is left against what the work will cost, and
+// the ledger is the only place that second number exists with evidence behind it.
+// p90 rather than the median: the question is whether there is room to finish and
+// verify, so the tail is the number that decides. Too few samples is reported, not
+// hidden, and a class with nothing recorded is a usage error rather than a guess.
+let needsNote = "";
+let needs = null;
+if (flags["--for"] !== undefined) {
+  const klass = flags["--for"];
+  const row = calibration(completedItems(readEvents(ledgerPath))).find((r) => r.class === klass);
+  if (!row || !Number.isFinite(row.actualP90)) {
+    usage(
+      `no completed "${klass}" items in ${ledgerPath}\n` +
+        `record some with: time.mjs plan <label> --estimate <dur> --class ${klass}, then \`done\``,
+    );
+  }
+  needs = Math.ceil(row.actualP90);
+  needsNote = ` (p90 of ${row.n} ${klass} item${row.n === 1 ? "" : "s"})`;
+  if (row.n < 4) {
+    console.error(
+      `warning: ${row.n} completed ${klass} item${row.n === 1 ? "" : "s"} — a p90 below four samples is thin`,
+    );
+  }
+} else if (flags["--needs"] !== undefined) {
+  needs = durationFlag(flags, "--needs");
+}
 const reserve = durationFlag(flags, "--reserve", defaultReserveMs);
 const state = loadState();
 const elapsed = Date.now() - state.start;
@@ -206,6 +237,6 @@ const verdict = decision.expired
     ? `fits, ${fmt(decision.spareMs)} spare`
     : `DOES NOT FIT — ${fmtShort(decision.shortByMs)} short`;
 console.log(
-  `${clock} | needs ${fmt(needs)} + ${fmt(reserve)} reserve = ${fmt(decision.neededMs)} | ${verdict}`,
+  `${clock} | needs ${fmt(needs)}${needsNote} + ${fmt(reserve)} reserve = ${fmt(decision.neededMs)} | ${verdict}`,
 );
 process.exit(decision.ok ? 0 : 2);

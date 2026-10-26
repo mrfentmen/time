@@ -40,7 +40,9 @@ including the one where an intermediate reading was over-stated and corrected.
 3. **Calibration** — the gate's estimates against observed actuals. AgentTime found
    forecasts are wrong by a *stable* factor (2.6×–3.8× too high, compression
    exponents 0.89–1.12), and a stable factor is correctable per class from a ledger
-   instead of a hunch.
+   instead of a hunch. The correction is wired in rather than promised:
+   `check --for <class>` uses that class's p90 actual as the cost, warns below four
+   samples, and refuses to guess when the class has no history.
 
 Read as a pair, (1) and (2) are a control problem: guard the gate too hard and you
 starve the session; not at all and you end every session mid-refactor.

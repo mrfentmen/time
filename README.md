@@ -75,6 +75,19 @@ models and found them wrong by a stable factor in a stable direction: 63–83% t
 high, typical misses of 2.6×–3.8×. A bias that stable is not noise, it is a
 correction waiting to be applied — per class, from your own data.
 
+The loop closes at the gate: `check --for review` takes that class's **p90 actual**
+from the ledger instead of a number typed at the keyboard.
+
+```sh
+node time.mjs check --for review --reserve 2m
+# elapsed 12m 00s | remaining 17m 59s | needs 9m 12s (p90 of 4 review items) + 2m 00s reserve = 11m 12s | fits, 6m 47s spare
+```
+
+p90 rather than the median, because the question is whether there is room to finish
+*and* verify, so the tail decides. Below four samples it warns on stderr; with no
+history for the class it exits `64` and names the command that would record some. A
+gate that quietly guesses is worse than one that says it does not know.
+
 ## Tests
 
 ```sh
@@ -134,6 +147,7 @@ The reasoning behind the protocol, the confounds, and what would falsify it are 
 | `start` | state file with start time + budget | `0` |
 | `check` | nothing | `0` while running, `2` once expired |
 | `check --needs <dur>` | nothing | `0` if the task and reserve fit, `2` if they do not |
+| `check --for <class>` | nothing | as `--needs`, with the cost from the ledger's p90; `64` if that class has no completed items |
 | `plan` / `done` | one line each to the ledger | `0`, or `64` if a plan is already open |
 | `report` | nothing | `0`, including on an empty ledger |
 | any, on bad input | nothing | `64` for a bad flag, bad duration, corrupt state, or no timer |
