@@ -19,6 +19,10 @@ MINUTES=10 node time.mjs start
 node time.mjs check || echo "budget spent, stop here"
 ```
 
+How this compares to the existing work in the field — AgentTime, chronos, Overnight
+Experimenter, AgenticTime, Docker Agent budgets — and what to take from each is in
+[`PRIOR_ART.md`](PRIOR_ART.md).
+
 ## Contract
 
 | command | writes | exit code |
