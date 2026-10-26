@@ -91,7 +91,7 @@ gate that quietly guesses is worse than one that says it does not know.
 ## Tests
 
 ```sh
-npm test        # 46 tests, nothing to install; node --test, no framework
+npm test        # 49 tests, nothing to install; node --test, no framework
 ```
 
 ## The bench

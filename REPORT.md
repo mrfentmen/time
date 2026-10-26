@@ -467,4 +467,10 @@ node bench/run.mjs --adapter cli --invocation per-session --scenario session \
   --tasks bench/tasks/e2.json --budget 40s --reserve 1000ms --estimate-scale 2.6 \
   --calibration-from bench/results/e2e-40s.json --repeats 3 \
   --arms blind,aware,gated,gated-cal --out bench/results/e2g-40s-bad-estimates.json
+
+# E2h
+node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+  --tasks bench/tasks/e2.json --budget 40s --reserve 1000ms --estimate-scale 2.6 \
+  --calibration-from bench/results/e2e-40s.json --calibration-jitter 0.4 \
+  --repeats 5 --arms gated,gated-cal --out bench/results/e2h-40s-noisy-ledger.json
 ```
