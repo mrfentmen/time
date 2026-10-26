@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { prompt, readSession } from "../bench/adapters/session.mjs";
+import { declaredCost, prompt, readSession } from "../bench/adapters/session.mjs";
 
 const task = (id) => ({ id, class: "build", trueCostMs: 1000, command: ["node", "work.mjs"] });
 
@@ -28,6 +28,18 @@ test("the gated prompt spells out each task's own cost, not a placeholder", () =
   assert.match(text, /a: node \/x\/time\.mjs check --needs 1000ms --reserve 500ms/);
   assert.match(text, /b: node \/x\/time\.mjs check --needs 2500ms --reserve 500ms/);
   assert.doesNotMatch(text, /<cost/);
+});
+
+test("a scaled estimate changes what is told, never what is measured", () => {
+  assert.equal(declaredCost({ trueCostMs: 1000 }, 2.6), 2600);
+  assert.equal(declaredCost({ trueCostMs: 1000 }, 1), 1000);
+});
+
+test("the calibrated arm asks for the class's measured cost, not the estimate", () => {
+  const tasks = [{ ...task("a"), class: "review", trueCostMs: 1000 }];
+  const text = prompt({ tasks, arm: "gated-cal", tool: "/x/time.mjs", reserveMs: 500, workDir: "/w" });
+  assert.match(text, /a: node \/x\/time\.mjs check --for review --reserve 500ms/);
+  assert.doesNotMatch(text, /check --needs/, "the estimate is exactly what this arm distrusts");
 });
 
 test("markers give start time, cost and what was left when the work began", () => {

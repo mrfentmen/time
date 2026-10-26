@@ -58,6 +58,7 @@ information.
 | `blind` | a shell, no clock | unknown — this is the baseline |
 | `aware` | `time.mjs check` — remaining time | the hypothesis says: still starts |
 | `gated` | `time.mjs check --needs` — a yes/no | declines what cannot fit |
+| `gated-cal` | `time.mjs check --for <class>` — a yes/no priced from measured p90 | declines what measured work says cannot fit |
 
 `aware` versus `gated` is the whole experiment. `blind` is the control that stops
 us from claiming credit for "having any clock at all".
@@ -95,6 +96,12 @@ Two scenarios:
   is the realistic case and the one where a blind agent keeps starting work after the
   budget has expired. Refusals cost no time, so arms see different numbers of tasks;
   `n` is reported per arm for that reason.
+
+`--estimate-scale` multiplies the cost every arm is *told* while the records keep the
+measured cost, and `--calibration-from <result.json>` seeds a ledger from a previous
+run so the `gated-cal` arm can price decisions from measurements
+(`check --for <class>`). A run with both is the only one in this repo where the
+estimates are wrong the way real ones are.
 
 `--invocation per-session` gives the agent the whole session instead of one task:
 the adapter writes every task into its own directory with a task list and one

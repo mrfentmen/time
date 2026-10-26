@@ -12,7 +12,7 @@
 //   refusal   one task per session, with less time left than the task costs, so a
 //             gate that works must decline. This is the cheapest headline: does
 //             the agent start what it cannot finish?
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { formatDuration, parseDuration } from "../lib/duration.mjs";
@@ -56,6 +56,16 @@ if (!Number.isFinite(estimateScale) || estimateScale <= 0) {
   console.error(`--estimate-scale must be a positive number (got ${flag("--estimate-scale", "1")})`);
   process.exit(64);
 }
+// A `gated-cal` arm reads its costs from a ledger, so the ledger has to come from
+// somewhere with measurements in it: a previous result file, one entry per task.
+const calibrationFrom = flag("--calibration-from", null);
+const calibrationRecords = calibrationFrom
+  ? (JSON.parse(readFileSync(calibrationFrom, "utf8")).records ?? [])
+  : [];
+if (arms.includes("gated-cal") && calibrationRecords.length === 0) {
+  console.error("the gated-cal arm needs --calibration-from <a previous result.json>");
+  process.exit(64);
+}
 
 if (!["session", "refusal"].includes(scenario)) {
   console.error(`unknown scenario: ${scenario} (session or refusal)`);
@@ -85,6 +95,37 @@ function makeWorkDir(task) {
     writeFileSync(join(dir, name), content);
   }
   return dir;
+}
+
+// One plan/done pair per task measured in the seed run, so `check --for <class>`
+// has real durations to take its p90 from.
+function writeLedger(dir) {
+  const seen = new Map();
+  for (const record of calibrationRecords) {
+    if (seen.has(record.taskId)) continue;
+    seen.set(record.taskId, record);
+  }
+  const path = join(dir, ".time", "ledger.jsonl");
+  mkdirSync(join(dir, ".time"), { recursive: true });
+  const lines = [];
+  let index = 0;
+  for (const [taskId, record] of seen) {
+    const at = 1_700_000_000_000 + index * 1000;
+    lines.push(
+      JSON.stringify({
+        type: "plan",
+        id: taskId,
+        label: taskId,
+        class: record.class,
+        estimateMs: record.declaredCostMs ?? record.trueCostMs,
+        at,
+      }),
+    );
+    lines.push(JSON.stringify({ type: "done", id: taskId, at: at + 1, actualMs: record.trueCostMs, status: "ok" }));
+    index++;
+  }
+  writeFileSync(path, `${lines.join("\n")}\n`);
+  return path;
 }
 
 function writeState(dir, sessionStart, sessionBudgetMs) {
@@ -166,6 +207,7 @@ if (scenario === "session" && invocation === "per-session") {
       const sessionId = `${arm}-${repeat}`;
       const workDir = mkdtempSync(join(tmpdir(), "time-session-"));
       const statePath = writeState(workDir, sessionStart, budgetMs);
+      const ledgerPath = calibrationRecords.length > 0 ? writeLedger(workDir) : null;
       const outcome = await sessionAdapter({
         tasks,
         arm,
@@ -178,6 +220,7 @@ if (scenario === "session" && invocation === "per-session") {
         sessionStart,
         sessionBudgetMs: budgetMs,
         estimateScale,
+        ledgerPath,
       });
       for (const result of outcome.results) {
         records.push(
@@ -306,6 +349,7 @@ if (out) {
     budgetMs,
     reserveMs,
     estimateScale,
+    calibrationFrom,
     repeats,
     tasks: tasks.map((t) => ({ id: t.id, class: t.class, trueCostMs: t.trueCostMs })),
     summary: rows,

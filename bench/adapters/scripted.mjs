@@ -22,12 +22,18 @@ function runCommand(command, cwd) {
   });
 }
 
-function askGate(tool, args, statePath) {
+function askGate(tool, args, statePath, ledgerPath = null) {
   return new Promise((resolve) => {
     execFile(
       process.execPath,
       [tool, ...args],
-      { env: { ...process.env, TIMER_STATE: statePath } },
+      {
+        env: {
+          ...process.env,
+          TIMER_STATE: statePath,
+          ...(ledgerPath ? { TIME_LEDGER: ledgerPath } : {}),
+        },
+      },
       (error) => resolve(error ? error.code : 0),
     );
   });
@@ -64,6 +70,7 @@ export async function runSession({
   reserveMs,
   sessionStart,
   sessionBudgetMs,
+  ledgerPath = null,
 }) {
   const results = [];
   for (const task of tasks) {
@@ -78,8 +85,10 @@ export async function runSession({
       const args =
         arm === "gated"
           ? ["check", "--needs", `${task.trueCostMs}ms`, "--reserve", `${reserveMs}ms`]
-          : ["check"];
-      if ((await askGate(tool, args, statePath)) === 2) {
+          : arm === "gated-cal"
+            ? ["check", "--for", task.class ?? "untagged", "--reserve", `${reserveMs}ms`]
+            : ["check"];
+      if ((await askGate(tool, args, statePath, ledgerPath)) === 2) {
         results.push({
           taskId: task.id,
           started: false,

@@ -167,6 +167,59 @@ test("per-session pays one invocation and still separates the arms", async () =>
   assert.equal(gatedPayload.summary[0].prematureStarts, 0);
 });
 
+test("the calibrated arm is refused without a history and runs with one", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "time-bench-test-"));
+  const taskFile = join(dir, "tasks.json");
+  writeFileSync(taskFile, JSON.stringify(tasks));
+
+  const runIt = (extra) =>
+    new Promise((resolve) => {
+      execFile(
+        process.execPath,
+        [
+          bench,
+          "--adapter",
+          "scripted",
+          "--scenario",
+          "session",
+          "--invocation",
+          "per-session",
+          "--tasks",
+          taskFile,
+          "--budget",
+          "2s",
+          "--arms",
+          "gated-cal",
+          "--out",
+          join(dir, "out.json"),
+          ...extra,
+        ],
+        { timeout: 60_000 },
+        (err, stdout, stderr) => resolve({ code: err ? err.code : 0, stdout, stderr }),
+      );
+    });
+
+  const without = await runIt([]);
+  assert.equal(without.code, 64, "a calibrated arm without measurements would be a guess");
+  assert.match(without.stderr, /needs --calibration-from/);
+
+  const seedFile = join(dir, "seed.json");
+  writeFileSync(
+    seedFile,
+    JSON.stringify({
+      records: [
+        { taskId: "slow", class: "build", trueCostMs: 400, declaredCostMs: 400 },
+        { taskId: "fast", class: "edit", trueCostMs: 150, declaredCostMs: 150 },
+      ],
+    }),
+  );
+  const withHistory = await runIt(["--calibration-from", seedFile]);
+  assert.equal(withHistory.code, 0, withHistory.stderr);
+  const payload = JSON.parse(readFileSync(join(dir, "out.json"), "utf8"));
+  assert.equal(payload.calibrationFrom, seedFile);
+  assert.ok(payload.records.every((record) => record.arm === "gated-cal"));
+});
+
 test("the session scenario shares one pot and records overruns", async () => {
   const dir = mkdtempSync(join(tmpdir(), "time-bench-test-"));
   const taskFile = join(dir, "tasks.json");

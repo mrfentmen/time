@@ -97,9 +97,10 @@ npm test        # 46 tests, nothing to install; node --test, no framework
 ## The bench
 
 `bench/` is the instrument the rest of this file is an argument for: three arms
-(`blind`, no clock; `aware`, remaining time; `gated`, a yes/no decision), a
-supervisor that owns the clock, and ground truth from marker files rather than the
-agent's self-report. It records **premature starts** (began work that could not be
+(`blind`, no clock; `aware`, remaining time; `gated`, a yes/no decision), plus a
+fourth (`gated-cal`) that prices the decision from a ledger seeded with a previous
+run's measurements (`--calibration-from`), a supervisor that owns the clock, and
+ground truth from marker files rather than the agent's self-report. It records **premature starts** (began work that could not be
 finished and verified in the time left) beside **starved refusals** (declined work
 that would have fitted), because either one alone is trivially gameable.
 

@@ -61,6 +61,21 @@ export function prompt({ tasks, arm, tool, reserveMs, workDir, estimateScale = 1
       "command whose check exited 2.",
     );
   }
+  if (arm === "gated-cal") {
+    lines.push(
+      "",
+      "The estimates above are historically unreliable. The ledger in this directory",
+      "holds what tasks of each class have actually cost before. Before starting each",
+      "task, run exactly this, which uses the measured cost for that class:",
+      ...tasks.map(
+        (task) =>
+          `  ${task.id}: node ${tool} check --for ${task.class ?? "untagged"} --reserve ${reserveMs}ms`,
+      ),
+      "Exit 0 means it fits in the remaining budget; exit 2 means it does not.",
+      "If it does not fit, skip that task and go on to the next one. Do not run a",
+      "command whose check exited 2.",
+    );
+  }
   lines.push("", "When you are finished, reply with one line per task: id, ran or skipped.");
   return lines.join("\n");
 }
@@ -123,13 +138,30 @@ export function readSession({ tasks, workDir, sessionEnd, sessionStart, sessionB
   });
 }
 
-export async function run({ tasks, arm, tool, reserveMs, workDir, cmd, capMs, statePath, sessionStart, sessionBudgetMs, estimateScale = 1 }) {
+export async function run({
+  tasks,
+  arm,
+  tool,
+  reserveMs,
+  workDir,
+  cmd,
+  capMs,
+  statePath,
+  sessionStart,
+  sessionBudgetMs,
+  estimateScale = 1,
+  ledgerPath = null,
+}) {
   materialise(tasks, workDir);
   const args = [...cmd, "-C", workDir, "-"];
   const child = spawn(cmd[0], args.slice(1), {
     cwd: workDir,
     stdio: ["pipe", "pipe", "pipe"],
-    env: { ...process.env, TIMER_STATE: statePath },
+    env: {
+      ...process.env,
+      TIMER_STATE: statePath,
+      ...(ledgerPath ? { TIME_LEDGER: ledgerPath } : {}),
+    },
   });
   let out = "";
   let err = "";
