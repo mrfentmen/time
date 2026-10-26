@@ -82,7 +82,7 @@ export function prompt({ tasks, arm, tool, reserveMs, workDir, estimateScale = 1
 
 // Tasks live in their own subdirectories so their markers cannot collide: one
 // `.started` per task, written by that task's script.
-function materialise(tasks, workDir) {
+export function materialise(tasks, workDir) {
   for (const task of tasks) {
     const dir = join(workDir, "tasks", task.id);
     mkdirSync(dir, { recursive: true });

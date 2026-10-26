@@ -21,7 +21,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-function prompt({ task, arm, tool, reserveMs, workDir }) {
+export function prompt({ task, arm, tool, reserveMs, workDir }) {
   const lines = [
     `You are working in this directory: ${workDir}`,
     "",

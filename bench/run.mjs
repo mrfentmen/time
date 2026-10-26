@@ -11,6 +11,11 @@
 //     --calibration-from bench/results/e2e-40s.json --calibration-jitter 0.4 \
 //     --arms gated,gated-cal --repeats 5 --out bench/results/e2h-40s-noisy-ledger.json
 //
+// Adapters
+//   scripted  deterministic policies, no tokens, for CI
+//   opencode  opencode run --auto --model <model>  (the live default for new runs)
+//   cli       codex exec, kept so the E1-E2h records can be reproduced
+//
 // Flags that change what the agent is told, not what is measured:
 //   --estimate-scale N        multiply every declared cost by N (2.6 = AgentTime's miss)
 //   --calibration-from FILE   seed a ledger from a previous result file
@@ -29,6 +34,7 @@ import { summarize } from "../lib/metrics.mjs";
 import { run as scripted, runSession as scriptedSession } from "./adapters/scripted.mjs";
 import { run as cli } from "./adapters/cli.mjs";
 import { run as cliSession } from "./adapters/session.mjs";
+import { defaultModel, run as opencode, runSession as opencodeSession } from "./adapters/opencode.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -95,8 +101,8 @@ if (!["session", "refusal"].includes(scenario)) {
   console.error(`unknown scenario: ${scenario} (session or refusal)`);
   process.exit(64);
 }
-if (!["scripted", "cli"].includes(adapterName)) {
-  console.error(`unknown adapter: ${adapterName} (scripted or cli)`);
+if (!["scripted", "cli", "opencode"].includes(adapterName)) {
+  console.error(`unknown adapter: ${adapterName} (scripted, cli or opencode)`);
   process.exit(64);
 }
 if (!["per-task", "per-session"].includes(invocation)) {
@@ -108,8 +114,10 @@ if (invocation === "per-session" && scenario !== "session") {
   process.exit(64);
 }
 
-const adapter = adapterName === "cli" ? cli : scripted;
-const sessionAdapter = adapterName === "cli" ? cliSession : scriptedSession;
+const model = flag("--model", defaultModel);
+const adapter = adapterName === "cli" ? cli : adapterName === "opencode" ? opencode : scripted;
+const sessionAdapter =
+  adapterName === "cli" ? cliSession : adapterName === "opencode" ? opencodeSession : scriptedSession;
 const tasks = JSON.parse(readFileSync(taskFile, "utf8"));
 const records = [];
 
@@ -181,6 +189,7 @@ async function runOne({ task, arm, sessionStart, sessionBudgetMs, remainingMs, s
     reserveMs,
     cmd,
     capMs,
+    model,
   });
   const record = {
     taskId: task.id,
@@ -253,6 +262,7 @@ if (scenario === "session" && invocation === "per-session") {
         sessionBudgetMs: budgetMs,
         estimateScale,
         ledgerPath,
+        model,
       });
       for (const result of outcome.results) {
         records.push(
@@ -383,6 +393,7 @@ if (out) {
     estimateScale,
     calibrationFrom,
     calibrationJitter,
+    model: adapterName === "scripted" ? null : model,
     repeats,
     tasks: tasks.map((t) => ({ id: t.id, class: t.class, trueCostMs: t.trueCostMs })),
     summary: rows,

@@ -91,7 +91,7 @@ gate that quietly guesses is worse than one that says it does not know.
 ## Tests
 
 ```sh
-npm test        # 49 tests, nothing to install; node --test, no framework
+npm test        # 52 tests, nothing to install; node --test, no framework
 ```
 
 ## The bench
@@ -103,6 +103,10 @@ run's measurements (`--calibration-from`), a supervisor that owns the clock, and
 ground truth from marker files rather than the agent's self-report. It records **premature starts** (began work that could not be
 finished and verified in the time left) beside **starved refusals** (declined work
 that would have fitted), because either one alone is trivially gameable.
+
+Live runs default to `--adapter opencode` (`opencode run --auto --model
+opencode/glm-5.3-flash-free`). The codex adapter, `--adapter cli`, is kept only so the
+E1–E2h records can be reproduced; new measurements use opencode.
 
 ```sh
 # no tokens: proves the instrument separates the arms
