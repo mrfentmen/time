@@ -78,7 +78,7 @@ correction waiting to be applied — per class, from your own data.
 ## Tests
 
 ```sh
-npm test        # 38 tests, nothing to install; node --test, no framework
+npm test        # 39 tests, nothing to install; node --test, no framework
 ```
 
 ## The bench
