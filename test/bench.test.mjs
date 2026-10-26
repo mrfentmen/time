@@ -78,6 +78,60 @@ test("the refusal scenario separates blind from gated", async () => {
   assert.equal(gatedRecord.remainingAtStartMs, Math.floor(tasks[0].trueCostMs * 0.8));
 });
 
+test("per-session pays one invocation and still separates the arms", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "time-bench-test-"));
+  const taskFile = join(dir, "tasks.json");
+  writeFileSync(taskFile, JSON.stringify(tasks));
+
+  const runArm = (arm) =>
+    new Promise((resolve) => {
+      const outFile = join(dir, `${arm}.json`);
+      execFile(
+        process.execPath,
+        [
+          bench,
+          "--adapter",
+          "scripted",
+          "--scenario",
+          "session",
+          "--invocation",
+          "per-session",
+          "--tasks",
+          taskFile,
+          "--budget",
+          "300ms",
+          "--reserve",
+          "0ms",
+          "--out",
+          outFile,
+          "--arms",
+          arm,
+        ],
+        { timeout: 60_000 },
+        (err, stdout, stderr) =>
+          resolve({ code: err ? err.code : 0, stderr, outFile }),
+      );
+    });
+
+  const blind = await runArm("blind");
+  assert.equal(blind.code, 0, blind.stderr);
+  const blindPayload = JSON.parse(readFileSync(blind.outFile, "utf8"));
+  assert.equal(blindPayload.invocation, "per-session");
+  assert.equal(blindPayload.records.length, 2);
+  assert.equal(blindPayload.sessions.length, 1, "one invocation for the session");
+  assert.equal(blindPayload.sessions[0].arm, "blind");
+  assert.ok(blindPayload.records.every((r) => r.started));
+  assert.equal(blindPayload.records[1].afterExpiry, true, "the pot is gone by task two");
+
+  const gated = await runArm("gated");
+  assert.equal(gated.code, 0, gated.stderr);
+  const gatedPayload = JSON.parse(readFileSync(gated.outFile, "utf8"));
+  assert.equal(gatedPayload.records[0].started, false, "400ms cannot fit in 300ms");
+  assert.equal(gatedPayload.records[0].note, "refused");
+  assert.equal(gatedPayload.records[1].started, true, "150ms still fits");
+  assert.equal(gatedPayload.summary[0].prematureStarts, 0);
+});
+
 test("the session scenario shares one pot and records overruns", async () => {
   const dir = mkdtempSync(join(tmpdir(), "time-bench-test-"));
   const taskFile = join(dir, "tasks.json");

@@ -8,6 +8,8 @@
 //          This is the "a clock is not a decision" hypothesis, made executable.
 //   gated  asks the gate, and only starts what fits.
 import { execFile, spawn } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 function runCommand(command, cwd) {
   return new Promise((resolve) => {
@@ -49,4 +51,55 @@ export async function run({ task, arm, tool, statePath, workDir, reserveMs }) {
     runtimeMs,
     note: code === 0 ? "ran" : `command exited ${code}`,
   };
+}
+
+// The same three policies, one pass over the task list inside a single
+// invocation, so `--invocation per-session` can be tested without a model.
+export async function runSession({
+  tasks,
+  arm,
+  tool,
+  statePath,
+  workDir,
+  reserveMs,
+  sessionStart,
+  sessionBudgetMs,
+}) {
+  const results = [];
+  for (const task of tasks) {
+    const dir = join(workDir, "tasks", task.id);
+    mkdirSync(dir, { recursive: true });
+    for (const [name, content] of Object.entries(task.files ?? {})) {
+      writeFileSync(join(dir, name), content);
+    }
+    const decidedAt = Date.now();
+    const remaining = sessionStart + sessionBudgetMs - decidedAt;
+    if (arm !== "blind") {
+      const args =
+        arm === "gated"
+          ? ["check", "--needs", `${task.trueCostMs}ms`, "--reserve", `${reserveMs}ms`]
+          : ["check"];
+      if ((await askGate(tool, args, statePath)) === 2) {
+        results.push({
+          taskId: task.id,
+          started: false,
+          finished: false,
+          runtimeMs: 0,
+          remainingAtStartMs: remaining,
+          note: "refused",
+        });
+        continue;
+      }
+    }
+    const { code, runtimeMs } = await runCommand(task.command, dir);
+    results.push({
+      taskId: task.id,
+      started: true,
+      finished: code === 0,
+      runtimeMs,
+      remainingAtStartMs: remaining,
+      note: code === 0 ? "ran" : `command exited ${code}`,
+    });
+  }
+  return { results, agentOutput: `scripted ${arm} session`, agentStderrTail: "" };
 }

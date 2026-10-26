@@ -123,23 +123,111 @@ runs is enough to see a direction and not enough to put an error bar on it. E1's
 refusal design — one task, equal opportunities, no latency confound — remains the
 cleaner of the two experiments.
 
+# E2b: paying startup once, 2026-10-25
+
+E2's latency finding said the instrument, not the judgement, was setting the numbers:
+one agent invocation per task charged 8–12s of startup and thinking to a shared pot.
+E2b changes only that. The same twelve tasks and the same three arms, but **one
+invocation per session**: the agent is handed the task list and the budget once and
+decides for itself what to start, in a single process. Records:
+[`bench/results/e2b-60s.json`](bench/results/e2b-60s.json),
+[`e2b-120s.json`](bench/results/e2b-120s.json). 72 records, six sessions.
+
+## Setup
+
+- 12 tasks, 1–7s each, 45.5s of work, one shared pot — identical to E2.
+- Each task in its own directory; each work script stamps `.started` and `.done`, so
+  every decision is reconstructed from files, not from the agent's reply.
+- Budgets of **60s** (1.3× the work) and **120s** (2.6×). Reserve 1s per decision.
+- One repeat per cell: each arm at each budget is **one session**.
+
+## Result
+
+Premature starts (began work that could not be finished and verified in time left):
+
+| budget | blind | aware | gated |
+|---|---|---|---|
+| 60s | 3/12 (25%) | **0/12** | **0/12** |
+| 120s | 0/12 | 0/12 | 0/12 |
+| **total** | **3/36 (8%)** | **0/36** | **0/36** |
+
+At 60s, where the budget actually bites:
+
+| arm | started | after the pot was empty | starved | wall clock | utilisation |
+|---|---|---|---|---|---|
+| blind | 12/12 | 2 | 0 | **76.7s — 16.7s past the bell** | 76% |
+| aware | 11/12 | 0 | 0 | 59.5s | 64% |
+| gated | 10/12 | 0 | 0 | 58.2s | 54% |
+
+The blind session ran `t11-docs` (6s) and `t12-deploy` (7s) with the pot already at
+zero. The aware session asked, saw 10.8s left before `t11`, ran it, then saw 0.5s
+before `t12` and stopped — the only refusal it made, and the right one. The gated
+session refused `t11` and `t12` at 1.8s left, both correctly, and ended with 1.8s
+idle.
+
+## What this shows
+
+**Startup paid once is 6–9× cheaper per decision.** Wall clock minus work, divided by
+decisions: **1.2–3.4s** here against 8–12s in E2. That alone repairs the instrument
+E2 flagged as degenerate — budgets in the tens of seconds stop being startup tests.
+
+**Half of the thesis fails here, and it is the half worth keeping honest.** The claim
+in `DESIGN.md` is that a clock does not change what an agent starts. In a continuous
+session it does: aware went from **10/12 premature in E2 to 0/12**, and it declined
+the last task for the correct reason. The mechanism is visible in the numbers — with
+one invocation the agent keeps the session in view, so a cheap `check` is something it
+actually consults between decisions, whereas a fresh per-task prompt has no session
+to pace.
+
+**The gate bought nothing over the clock at this budget.** Both scored 0, and the
+gate paid for its 0 in idle time: 54% utilisation against 64%, two refusals against
+one, 1.8s of the pot left unused. Its refusals were correct, but so was the clock's
+one, and the clock's owner reasoned about the fit itself. What E1 and E2 measured as
+the gate's advantage may be the advantage of a clock an agent will *use* — which is a
+statement about continuity and prompt shape, not about the gate as a separate idea.
+
+**Continuity alone is not enough.** The blind arm had the same session context and
+still ran 16.7s past the bell, starting two tasks at zero. Session shape lowered
+blind from 83% to 25% premature; the clock is what removed the rest.
+
+**A generous budget measures nothing, for the third time.** At 120s every arm ran all
+twelve tasks and scored 0 — 45.5s of work plus ~2s per decision fits inside 120s.
+Budget has to be tight relative to work before any arm can fail.
+
+## Limits
+
+- **One session per cell.** 12 records per arm is not 12 independent observations;
+the unit is the session, so 3 versus 0 is one session versus one session. E2b is a
+direction with a mechanism attached, not a rate.
+- The costs are printed in the task list and exact, so every arm can do the arithmetic
+itself. AgentTime's forecasts miss by 2.6–3.8×; here the estimates are perfect, which
+flatters all three arms and the gate least.
+- One model, one harness, synthetic tasks. Same caveats as E2.
+
 ## Next
 
-1. **E2b** — rerun the ladder with budgets ≥10× per-decision latency (200s/800s/3.2ks)
-   or, better, one agent invocation per session instead of one per task, so overhead
-   stops being a term in the budget. The second option also makes the session real:
-   the agent carries its own context between decisions.
-2. **E4** — repeat E1 and E2b under a second harness, since AgentTime found model
+1. **E2c** — five repeats of the 60s cell (30 sessions) to put an interval on 3 versus
+   0 and find out whether the aware arm's single correct refusal is a policy or a
+   coincidence.
+2. **Separate continuity from clock cost** — a per-session aware arm whose clock costs
+   a fresh turn, to test the mechanism above directly rather than by inference.
+3. **E4** — repeat E1 and E2b under a second harness, since AgentTime found model
    effects dominate harness effects (slopes moved 0.14–0.16 by harness, 0.69–0.71 by
    model).
-3. **E3** — five real sessions through `plan`/`done`/`report`, to see whether the
+4. **E3** — five real sessions through `plan`/`done`/`report`, to see whether the
    per-class bias converges enough to replace the hand-written estimate the gate
    currently receives.
 
 Replication is one command; the file name carries the date:
 
 ```sh
+# E1
 node bench/run.mjs --adapter cli --scenario refusal --tasks bench/tasks/refusal.json \
   --arms blind,aware,gated --repeats 3 --reserve 2000ms --cap 90s \
   --out bench/results/live-refusal-$(date +%F).json
+
+# E2b
+node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+  --tasks bench/tasks/e2.json --budget 60s --reserve 1000ms --arms blind,aware,gated \
+  --out bench/results/e2b-60s.json
 ```

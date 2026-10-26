@@ -78,7 +78,7 @@ correction waiting to be applied — per class, from your own data.
 ## Tests
 
 ```sh
-npm test        # 33 tests, nothing to install; node --test, no framework
+npm test        # 38 tests, nothing to install; node --test, no framework
 ```
 
 ## The bench
@@ -98,6 +98,11 @@ node bench/run.mjs --adapter scripted --scenario refusal --tasks bench/tasks/dem
 node bench/run.mjs --adapter cli --scenario refusal --tasks bench/tasks/refusal.json \
   --arms blind,aware,gated --repeats 3 --reserve 2000ms --cap 90s \
   --out bench/results/live-refusal-$(date +%F).json
+
+# one agent invocation for a whole session, so startup is paid once
+node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+  --tasks bench/tasks/e2.json --budget 60s --arms blind,aware,gated \
+  --out bench/results/e2b-60s.json
 ```
 
 The reasoning behind the protocol, the confounds, and what would falsify it are in
@@ -107,6 +112,10 @@ The reasoning behind the protocol, the confounds, and what would falsify it are 
 - **E2**, 108 runs over twelve tasks at three budgets: **42% premature starts for
   both blind and aware, 0% for gated** — at the cost of refusing half the offers and
   leaving up to 38% of the budget idle. Read the two numbers together.
+- **E2b**, the same ladder with one invocation per session: per-decision overhead fell
+  from 8–12s to 1.2–3.4s, the aware arm went from 10/12 premature starts to **0/12**,
+  and the gate matched it at 0 while leaving more of the budget idle. That partially
+  refutes the headline claim, and `REPORT.md` says so first rather than last.
 
 ## Contract
 

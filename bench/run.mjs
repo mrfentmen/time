@@ -17,8 +17,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { formatDuration, parseDuration } from "../lib/duration.mjs";
 import { summarize } from "../lib/metrics.mjs";
-import { run as scripted } from "./adapters/scripted.mjs";
+import { run as scripted, runSession as scriptedSession } from "./adapters/scripted.mjs";
 import { run as cli } from "./adapters/cli.mjs";
+import { run as cliSession } from "./adapters/session.mjs";
 
 const args = process.argv.slice(2);
 const flag = (name, fallback) => {
@@ -40,7 +41,14 @@ const cmd = (flag("--cmd", "codex exec --skip-git-repo-check --ephemeral -s work
   .split(" ")
   .filter(Boolean);
 const arms = (flag("--arms", "blind,aware,gated") || "").split(",");
-const capMs = parseDuration(flag("--cap", `${Math.ceil((budgetMs * 2) / 1000)}s`));
+const invocation = flag("--invocation", "per-task");
+// One invocation per session pays the agent's startup once, so the cap has to
+// allow for a session's worth of thinking rather than a single decision's.
+const capDefault =
+  invocation === "per-session"
+    ? `${Math.ceil((budgetMs + Math.max(240_000, budgetMs)) / 1000)}s`
+    : `${Math.ceil((budgetMs * 2) / 1000)}s`;
+const capMs = parseDuration(flag("--cap", capDefault));
 
 if (!["session", "refusal"].includes(scenario)) {
   console.error(`unknown scenario: ${scenario} (session or refusal)`);
@@ -50,8 +58,17 @@ if (!["scripted", "cli"].includes(adapterName)) {
   console.error(`unknown adapter: ${adapterName} (scripted or cli)`);
   process.exit(64);
 }
+if (!["per-task", "per-session"].includes(invocation)) {
+  console.error(`unknown invocation: ${invocation} (per-task or per-session)`);
+  process.exit(64);
+}
+if (invocation === "per-session" && scenario !== "session") {
+  console.error("per-session only applies to the session scenario");
+  process.exit(64);
+}
 
 const adapter = adapterName === "cli" ? cli : scripted;
+const sessionAdapter = adapterName === "cli" ? cliSession : scriptedSession;
 const tasks = JSON.parse(readFileSync(taskFile, "utf8"));
 const records = [];
 
@@ -107,7 +124,68 @@ async function runOne({ task, arm, sessionStart, sessionBudgetMs, remainingMs, s
   return record;
 }
 
-if (scenario === "session") {
+// One invocation, many decisions: the adapter runs the whole session and reports
+// each task's markers, so the record is built from when the work actually began
+// rather than from when the supervisor handed over the next prompt.
+function sessionRecord({ task, arm, sessionId, sessionBudgetMs, result }) {
+  return {
+    taskId: task.id,
+    class: task.class ?? "untagged",
+    arm,
+    scenario,
+    sessionId,
+    adapter: adapterName,
+    invocation,
+    budgetMs: sessionBudgetMs,
+    reserveMs,
+    remainingAtStartMs: Math.max(0, result.remainingAtStartMs),
+    afterExpiry: result.remainingAtStartMs <= 0,
+    trueCostMs: task.trueCostMs,
+    started: result.started,
+    finished: result.finished,
+    runtimeMs: result.runtimeMs,
+    overranBudget: result.started && result.runtimeMs > Math.max(0, result.remainingAtStartMs),
+    note: result.note,
+  };
+}
+
+const sessionLogs = [];
+
+if (scenario === "session" && invocation === "per-session") {
+  for (const arm of arms) {
+    for (let repeat = 0; repeat < repeats; repeat++) {
+      const sessionStart = Date.now();
+      const sessionId = `${arm}-${repeat}`;
+      const workDir = mkdtempSync(join(tmpdir(), "time-session-"));
+      const statePath = writeState(workDir, sessionStart, budgetMs);
+      const outcome = await sessionAdapter({
+        tasks,
+        arm,
+        tool,
+        statePath,
+        workDir,
+        reserveMs,
+        cmd,
+        capMs,
+        sessionStart,
+        sessionBudgetMs: budgetMs,
+      });
+      for (const result of outcome.results) {
+        records.push(
+          sessionRecord({ task: tasks.find((t) => t.id === result.taskId), arm, sessionId, sessionBudgetMs: budgetMs, result }),
+        );
+      }
+      sessionLogs.push({
+        sessionId,
+        arm,
+        wallClockMs: Date.now() - sessionStart,
+        killed: outcome.killed ?? false,
+        exitCode: outcome.code ?? 0,
+        agentOutput: outcome.agentOutput,
+      });
+    }
+  }
+} else if (scenario === "session") {
   for (const arm of arms) {
     for (let repeat = 0; repeat < repeats; repeat++) {
       const sessionStart = Date.now();
@@ -158,7 +236,7 @@ const pct = (value) => (value === null ? "—" : `${Math.round(value * 100)}%`);
 const brief = (ms) => (ms === null ? "—" : ms < 1000 ? `${Math.round(ms)}ms` : formatDuration(ms));
 
 console.log(
-  `\n${scenario} · ${adapterName} · ${tasks.length} tasks · ${repeats} repeat(s) · ` +
+  `\n${scenario} · ${adapterName} · ${invocation} · ${tasks.length} tasks · ${repeats} repeat(s) · ` +
     `budget ${scenario === "session" ? formatDuration(budgetMs) : "80% of each task"}\n`,
 );
 const header = ["arm", "n", "started", "after expiry", "premature", "starved", "completed", "overran", "median overrun", "utilisation"];
@@ -193,11 +271,14 @@ if (out) {
     generatedAt: new Date().toISOString(),
     scenario,
     adapter: adapterName,
+    invocation,
+    capMs,
     budgetMs,
     reserveMs,
     repeats,
     tasks: tasks.map((t) => ({ id: t.id, class: t.class, trueCostMs: t.trueCostMs })),
     summary: rows,
+    sessions: sessionLogs,
     records,
   };
   writeFileSync(out, `${JSON.stringify(payload, null, 2)}\n`);

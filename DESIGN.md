@@ -17,6 +17,15 @@ If that is false — if a clock alone produces the same behaviour — then the t
 here is wrong and this repo should say so in public, because the entire field is
 currently shipping clocks.
 
+**E2b qualified it, and the qualification is the more useful sentence.** With one
+agent invocation per session instead of one per task, a cheap clock *is* consulted:
+the aware arm went from 10/12 premature starts to 0/12, and the gate scored the same
+0 while spending more of the budget idle. So the claim as written holds in a per-task
+harness — the shape most agent benchmarks use — and fails in a continuous session.
+What survives is narrower and testable: **a gate substitutes for a clock an agent
+will consult, and buys least where the agent already has the session in view.**
+[`REPORT.md`](REPORT.md) carries both runs; nothing here is retracted quietly.
+
 ## Three things, in order of what they cost to be wrong about
 
 1. **Premature start** — began work that could not be finished *and verified* in the
@@ -82,10 +91,23 @@ Two scenarios:
   budget has expired. Refusals cost no time, so arms see different numbers of tasks;
   `n` is reported per arm for that reason.
 
+`--invocation per-session` gives the agent the whole session instead of one task:
+the adapter writes every task into its own directory with a task list and one
+budget, then starts the CLI once. Each task's work script still stamps `.started`
+and `.done`, so the supervisor reconstructs every decision from files rather than
+from the reply. Startup is paid once and the agent carries its context across
+decisions, which is both cheaper and closer to a real session.
+
+```
+$ node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+    --tasks bench/tasks/e2.json --budget 120s --arms blind,aware,gated \
+    --out bench/results/e2b-120s.json
+```
+
 `--adapter scripted` replaces the model with three deterministic policies (always
-start / check then start / gate). It exists so the instrument can be tested in CI
-without tokens. Its numbers are an upper bound on what the gate can do, never a
-result.
+start / check then start / gate), in both invocations. It exists so the instrument
+can be tested in CI without tokens. Its numbers are an upper bound on what the gate
+can do, never a result.
 
 ### The latency constraint
 
@@ -98,7 +120,9 @@ thinking has already spent.
 
 The rule for any future run: **budget ≥ 10× per-decision latency**, or one agent
 invocation per session so that overhead is paid once rather than per task. The
-second is the better design and the one E2b should use.
+second is the better design and the one E2b uses. It also shrinks the latency it
+has to divide by: with no process startup between decisions, a turn costs a few
+seconds, so budgets in the tens of seconds stop being startup measurements.
 
 ## Experiments
 
@@ -106,6 +130,7 @@ second is the better design and the one E2b should use.
 |---|---|---|---|---|
 | E1 | does the gate change whether work is started? | refusal, 1 task, 3 arms × 3 repeats | 9 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2 | does that hold across a session with real choices? | session, 12 tasks, 3 arms × 3 budgets × 1 repeat | 108 | **run** — see [`REPORT.md`](REPORT.md) |
+| E2b | does the ladder survive paying startup once, in one invocation? | session, 12 tasks, 3 arms × 2 budgets (60s, 120s), per-session invocation | 6 | **run** — see [`REPORT.md`](REPORT.md) |
 | E3 | does the calibration loop make the gate's estimates honest? | ledger bias per class over ≥5 sessions | — | instrument built, needs use |
 | E4 | does the effect hold across models? | E2 with a second harness | 324 | not run |
 
@@ -120,6 +145,10 @@ The thesis dies if `aware` ≈ `gated` on premature starts across E1 and E2, or 
 `gated` only wins by starving the session (starved-refusal rate rises with it). Both
 outcomes get published in `REPORT.md` with the records attached; a tool that
 silently works around a negative result is worth less than one that reports it.
+
+The first clause fired in E2b: at a 60s budget in a continuous session, aware and
+gated both scored 0 premature starts, and gated used *less* of the budget. That is
+reported as a partial refutation, with the instrument change that caused it named.
 
 ## What this does not claim
 
