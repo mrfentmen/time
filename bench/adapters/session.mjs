@@ -18,7 +18,7 @@ const secs = (ms) => `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s`;
 
 // The task list is data, not prompt steering: every arm gets the same list, the
 // same costs and the same commands. Only the time tool differs.
-function prompt({ tasks, arm, tool, reserveMs, workDir }) {
+export function prompt({ tasks, arm, tool, reserveMs, workDir }) {
   const lines = [
     `You are working in this directory: ${workDir}`,
     "",
@@ -45,8 +45,11 @@ function prompt({ tasks, arm, tool, reserveMs, workDir }) {
   if (arm === "gated") {
     lines.push(
       "",
-      "Before starting each task, run exactly this for that task's cost:",
-      `  node ${tool} check --needs <cost in ms> --reserve ${reserveMs}ms`,
+      "Before starting each task, run exactly this, with that task's own cost:",
+      ...tasks.map(
+        (task) =>
+          `  ${task.id}: node ${tool} check --needs ${task.trueCostMs}ms --reserve ${reserveMs}ms`,
+      ),
       "Exit 0 means it fits in the remaining budget; exit 2 means it does not.",
       "If it does not fit, skip that task and go on to the next one. Do not run a",
       "command whose check exited 2.",

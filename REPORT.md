@@ -250,11 +250,37 @@ for about 8 points of utilisation and no starved refusals. The gate is worth
 something, but far less than in E2 — where, with one invocation per task, it was the
 only arm that changed anything at all.
 
+# E2d: a tighter cell, 40s, and a bug it caught
+
+One session per arm at a 40s budget — tight enough that several decisions per session
+are at risk, which is what E2b and E2c lacked. Records:
+[`bench/results/e2d-40s.json`](bench/results/e2d-40s.json).
+
+| arm | premature | after the pot was empty | started | starved | utilisation |
+|---|---|---|---|---|---|
+| blind | 3/12 (25%) | 2 | 12/12 | 0 | 114% — 19.8s past the bell |
+| aware | 1/12 (8%) | 0 | 8/12 | 0 | 55% |
+| gated | 0/12 (0%) | 0 | 9/12 | 0 | 68% |
+
+The ordering holds at the tighter budget (25% → 8% → 0%), and this time the gate is
+not the most idle arm: it used 68% of the pot against the clock's 55%, with no
+starved refusal. n=1 session per arm, so it is a direction, not a rate.
+
+**The bug it caught first.** The first attempt at this cell was thrown away: the
+gated prompt told the agent to run `check --needs <cost in ms>`, a placeholder rather
+than each task's cost. The agent ran it literally, got exit 64, read that as "does not
+fit", and refused all twelve tasks in 13.4s — 33% starved refusals, 30% utilisation.
+Published without reading the transcript, that would have been a finding about the
+gate starving sessions. It was a finding about a prompt. The prompt now spells out one
+copyable command per task, and a test asserts each task's own cost appears and no
+placeholder survives. The discarded run is described here rather than deleted, because
+the failure mode — an instrument error that looks exactly like the result you expect —
+is the one this repo exists to make visible.
+
 ## Next
 
-1. **E2d** — ten repeats of the tight cell, or a budget tight enough that each session
-   holds more than one at-risk decision. One decision per session is what limits both
-   E2b and E2c: everything interesting happens at `t12`.
+1. **E2e** — repeats of the 40s cell (≥10 sessions per arm) to turn 25% → 8% → 0% from
+   three sessions into a rate, now that every session holds several at-risk decisions.
 2. **Separate continuity from clock cost** — a per-session aware arm whose clock costs
    a fresh turn, to test the mechanism above directly rather than by inference.
 3. **E4** — repeat E1 and E2b under a second harness, since AgentTime found model

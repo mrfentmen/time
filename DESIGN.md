@@ -135,6 +135,7 @@ seconds, so budgets in the tens of seconds stop being startup measurements.
 | E2 | does that hold across a session with real choices? | session, 12 tasks, 3 arms × 3 budgets × 1 repeat | 108 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2b | does the ladder survive paying startup once, in one invocation? | session, 12 tasks, 3 arms × 2 budgets (60s, 120s), per-session invocation | 6 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2c | does the E2b reading survive repetition? | 60s cell × 3 repeats, 3 arms | 108 | **run** — see [`REPORT.md`](REPORT.md) |
+| E2d | does the ordering hold where several decisions per session are at risk? | 40s cell, 3 arms, 1 repeat | 36 | **run** — see [`REPORT.md`](REPORT.md) |
 | E3 | does the calibration loop make the gate's estimates honest? | ledger bias per class over ≥5 sessions | — | instrument built, needs use |
 | E4 | does the effect hold across models? | E2 with a second harness | 324 | not run |
 

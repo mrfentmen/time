@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readSession } from "../bench/adapters/session.mjs";
+import { prompt, readSession } from "../bench/adapters/session.mjs";
 
 const task = (id) => ({ id, class: "build", trueCostMs: 1000, command: ["node", "work.mjs"] });
 
@@ -19,6 +19,16 @@ function markers(workDir, id, startedAt, finishedAt) {
   writeFileSync(join(dir, ".started"), String(startedAt));
   if (finishedAt !== null) writeFileSync(join(dir, ".done"), String(finishedAt));
 }
+
+test("the gated prompt spells out each task's own cost, not a placeholder", () => {
+  // A literal `<cost in ms>` once survived into a live run and the agent ran it,
+  // got exit 64 and refused the entire session. The command has to be copyable.
+  const tasks = [{ ...task("a"), trueCostMs: 1000 }, { ...task("b"), trueCostMs: 2500 }];
+  const text = prompt({ tasks, arm: "gated", tool: "/x/time.mjs", reserveMs: 500, workDir: "/w" });
+  assert.match(text, /a: node \/x\/time\.mjs check --needs 1000ms --reserve 500ms/);
+  assert.match(text, /b: node \/x\/time\.mjs check --needs 2500ms --reserve 500ms/);
+  assert.doesNotMatch(text, /<cost/);
+});
 
 test("markers give start time, cost and what was left when the work began", () => {
   const workDir = mkdtempSync(join(tmpdir(), "time-session-"));
