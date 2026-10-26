@@ -21,7 +21,7 @@ currently shipping clocks.
 With one agent invocation per session instead of one per task, a cheap clock *is*
 consulted. Over ten sessions per arm at a 40s budget: **blind 38% [29–48], aware 7%
 [3–10], gated 0 in ten sessions** — the gate still wins, the clock does five sixths
-of the work, and the gate pays about a third of the completed tasks for the rest. So the claim as
+of the work, and the gate pays about an eighth of the completed tasks for the rest. So the claim as
 written holds in a per-task harness — the shape most agent benchmarks use — and
 mostly fails in a continuous session, where the gate keeps a small residual edge
 instead of being the only thing that works. What survives is narrower and testable:

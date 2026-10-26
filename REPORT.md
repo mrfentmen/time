@@ -309,8 +309,8 @@ Per session, the shape behind the rates:
 
 **The ordering is no longer a single-session artefact.** Blind 38% [29–48] and aware
 7% [3–10] do not overlap; gated had no premature start in ten sessions, and the
-events are spread across aware's sessions rather than concentrated in one (seven
-sessions with one, one with two). This is the first cell in the series with enough
+events are spread across aware's sessions rather than concentrated in one (six
+sessions with one, one with two, three with none). This is the first cell in the series with enough
 sessions to carry an interval, and the direction from E1 survives it at a budget
 where several decisions per session are at risk.
 
@@ -322,8 +322,10 @@ there by spending 316.9s past the bell across ten sessions.
 
 **Nothing here rescues the original thesis.** The gate is strict dominance over the
 clock on this metric, but the clock alone removes five sixths of the blind failure
-(38% → 7%). The gate's remaining job is the last 7%, and it pays a third of the work
-for it.
+(38% → 7%). The gate's remaining job is the last 7%, and it pays an eighth of the
+completed tasks (9 of 85) for it — closer to one-for-one than it looks, and that
+ratio is what a user actually feels when a session ends with work left on the table.
+E2f is the experiment that prices it against a wrong estimate instead of an exact one.
 
 ## Limits
 
