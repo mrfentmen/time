@@ -91,7 +91,7 @@ gate that quietly guesses is worse than one that says it does not know.
 ## Tests
 
 ```sh
-npm test        # 39 tests, nothing to install; node --test, no framework
+npm test        # 46 tests, nothing to install; node --test, no framework
 ```
 
 ## The bench
@@ -121,6 +121,9 @@ node bench/run.mjs --adapter cli --invocation per-session --scenario session \
 node bench/run.mjs --adapter cli --invocation per-session --scenario session \
   --tasks bench/tasks/e2.json --budget 60s --repeats 3 --arms blind,aware,gated \
   --out bench/results/e2c-60s.json
+
+# turn a result file into rates with intervals that resample sessions
+node bench/analyze.mjs bench/results/e2c-60s.json
 ```
 
 The reasoning behind the protocol, the confounds, and what would falsify it are in
