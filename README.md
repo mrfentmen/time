@@ -142,6 +142,10 @@ The reasoning behind the protocol, the confounds, and what would falsify it are 
   caught — a `<cost in ms>` placeholder that made the gate refuse a whole session and
   read exactly like a real result — and the E2c repeat that corrected an over-read
   E2b.
+- **E2g**, estimates inflated 2.6× so they miss the way real ones do: a gate that
+  trusts the number starts 17/36 offers, the same gate priced from measured p90
+  starts 22/36 with the same zero premature starts, and the clock arm collapses to
+  18% utilisation. Calibration is worth about a quarter of the session.
 
 ## Contract
 

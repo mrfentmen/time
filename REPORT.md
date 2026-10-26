@@ -338,17 +338,72 @@ E2f is the experiment that prices it against a wrong estimate instead of an exac
 - The blind arm's 108% utilisation is not effort, it is overrun: the same work
   measured against a budget that had already expired.
 
+# E2g: the same cell with estimates that are wrong, 2026-10-25
+
+Every run above told the agent the true cost of each task — a freebie no real
+forecast gets. This one inflates the **declared** cost by 2.6× (the miss AgentTime
+measured) while the records keep the measured cost, and adds a fourth arm:
+`gated-cal`, which runs `check --for <class>` against a ledger seeded from E2e's
+measurements instead of trusting the number it is handed.
+
+Three repeats per arm, 40s budget, 144 records:
+[`bench/results/e2g-40s-bad-estimates.json`](bench/results/e2g-40s-bad-estimates.json).
+
+## Result
+
+| arm | what it trusts | premature | 95% CI | started | starved | utilisation | s/decision |
+|---|---|---|---|---|---|---|---|
+| blind | nothing | **20/36 (56%)** | 50–67% | 36/36 | 0 | 114% | 4.0 |
+| aware | the clock | 0/36 | none in 3 sessions | 12/36 | 0 | 18% | 8.3 |
+| gated | the estimate (2.6×) | 0/36 | none in 3 sessions | 17/36 | 1 | 31% | 4.2 |
+| gated-cal | measured p90 | 0/36 | none in 3 sessions | 22/36 | 0 | 48% | 3.0 |
+
+## What this shows
+
+**Calibration buys back a quarter of the session.** The gate that trusts the inflated
+estimate starts 17 of 36 offers; the one that prices from measured p90 starts 22 —
+**+29% more work, same zero premature starts, and it removes the single starved
+refusal**. Utilisation moves 31% → 48%. This is the first cell where `check --for`
+has a number attached to it rather than an argument.
+
+**A bad forecast makes the gate safe and useless.** `gated`'s zero premature starts
+here are worthless: it achieves them by refusing two thirds of the offers, because a
+2.6× costs says nothing fits. A gate without calibration is not conservative, it is
+uninformative — and this is the failure mode a user would hit on day one, before any
+ledger exists.
+
+**The clock arm suffered worst.** Aware spent **8.3s per decision** against 2.4s in
+E2e, exhausted the pot after three to five tasks, and finished with 18% utilisation —
+zero premature starts, almost no work. With inflated numbers in the list it
+apparently reasoned longer per start; that is an observation about this cell, not a
+mechanism I can yet explain.
+
+**Session noise is bigger than it looks.** Blind scored 56% [50–67] here against 38%
+[29–48] in E2e, with the same policy and the same budget. Three sessions cannot
+separate those two intervals, which is exactly why E2e used ten.
+
+## Limits
+
+- The seed ledger holds each task's **true** measured cost, so `gated-cal` is the
+  best case for calibration: a real ledger is noisy and class-level, not task-level.
+- One to two samples per class in the seed, so every `--for` call prints its thin-
+  sample warning. The band is honest, the p90 is coarse.
+- Three sessions per arm: the calibrated-arm gain is +5 decisions, not a rate.
+- Same model, harness, and synthetic tasks as the rest of the series.
+
 ## Next
 
-1. **E2f** — the same ten-session cell with *wrong* estimates (multiply the stated
-   costs by the bias AgentTime measured), so the gate's p90 calibration is tested
-   rather than assumed.
-2. **Separate continuity from clock cost** — a per-session aware arm whose clock costs
+1. **E2h** — repeat this cell with a *noisy* seed ledger (jitter each historical
+   duration by ±40%) and ten repeats, so calibration is tested against history as
+   messy as a real one rather than the exact costs it was trained on.
+2. **E2f** — the same ten-session cell with wrong estimates but no calibrated arm,
+   to isolate how much of E2e's result depends on the estimates being exact.
+3. **Separate continuity from clock cost** — a per-session aware arm whose clock costs
    a fresh turn, to test the mechanism directly rather than by inference.
-3. **E4** — repeat E1 and E2e under a second harness, since AgentTime found model
+4. **E4** — repeat E1 and E2e under a second harness, since AgentTime found model
    effects dominate harness effects (slopes moved 0.14–0.16 by harness, 0.69–0.71 by
    model).
-4. **E3** — five real sessions through `plan`/`done`/`report`, to see whether the
+5. **E3** — five real sessions through `plan`/`done`/`report`, to see whether the
    per-class bias converges enough to replace the hand-written estimate the gate
    currently receives; `check --for <class>` is now the consumer of that number.
 
@@ -375,4 +430,10 @@ node bench/run.mjs --adapter cli --invocation per-session --scenario session \
   --tasks bench/tasks/e2.json --budget 40s --reserve 1000ms --repeats 10 \
   --arms blind,aware,gated --out bench/results/e2e-40s.json
 node bench/analyze.mjs bench/results/e2e-40s.json
+
+# E2g
+node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+  --tasks bench/tasks/e2.json --budget 40s --reserve 1000ms --estimate-scale 2.6 \
+  --calibration-from bench/results/e2e-40s.json --repeats 3 \
+  --arms blind,aware,gated,gated-cal --out bench/results/e2g-40s-bad-estimates.json
 ```

@@ -162,6 +162,7 @@ seconds, so budgets in the tens of seconds stop being startup measurements.
 | E2c | does the E2b reading survive repetition? | 60s cell × 3 repeats, 3 arms | 108 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2d | does the ordering hold where several decisions per session are at risk? | 40s cell, 3 arms, 1 repeat | 36 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2e | is the ordering a rate with an interval, not a single session? | 40s cell, 3 arms, 10 repeats | 360 | **run** — blind 38% [29–48], aware 7% [3–10], gated none in 10 sessions |
+| E2g | does calibration rescue a gate fed wrong estimates? | 40s cell, estimates ×2.6, 4 arms (adds `gated-cal`), 3 repeats | 144 | **run** — calibrated arm starts 29% more work at zero premature starts |
 | E3 | does the calibration loop make the gate's estimates honest? | ledger bias per class over ≥5 sessions | — | instrument built, needs use |
 | E4 | does the effect hold across models? | E2 with a second harness | 324 | not run |
 
