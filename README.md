@@ -4,7 +4,13 @@ A wall-clock budget for a work session, as a single dependency-free Node script.
 
 It exists because "work for 30 minutes" needs to be a thing an agent (or a shell)
 can *check*, not a thing it remembers: `check` exits non-zero the moment the
-budget is spent, so anything that runs after it can be gated on the result.
+budget is spent, so anything that runs after it can be gated on the result. The
+gate goes one step earlier — `check --needs 8m` asks whether there is room to
+*finish and verify* something before the budget is gone.
+
+How this compares to the existing work in the field — AgentTime, chronos, Overnight
+Experimenter, AgenticTime, Docker Agent budgets — and what to take from each is in
+[`PRIOR_ART.md`](PRIOR_ART.md).
 
 ## Usage
 
@@ -19,9 +25,37 @@ MINUTES=10 node time.mjs start
 node time.mjs check || echo "budget spent, stop here"
 ```
 
-How this compares to the existing work in the field — AgentTime, chronos, Overnight
-Experimenter, AgenticTime, Docker Agent budgets — and what to take from each is in
-[`PRIOR_ART.md`](PRIOR_ART.md).
+```sh
+# gate *starting* a task on whether it and its verification still fit
+node time.mjs check --needs 8m && start_the_task || leave_it_for_next_time
+# elapsed 12m 00s | remaining 17m 59s | needs 8m 00s + 3m 00s reserve = 11m 00s | fits, 6m 59s spare
+```
+
+## The gate
+
+`check` answers "how much time is left". `check --needs 8m` answers the question
+that decides whether a session ends clean: **is there room to finish this, verify
+it, and still be stopped rather than mid-surgery?**
+
+It exits `0` only when the remaining budget covers the task *plus a reserve for
+verifying it* — typecheck, tests, deploy, smoke, whichever of those the change
+needs. The reserve defaults to 3 minutes and is set with `--reserve`, so an
+intentionally tiny task can be cleared with `--reserve 1m` and an architectural one
+needs more.
+
+The reserve is the whole point. Work that fits but cannot be verified does not fit:
+the 2026-10-25 session below is a case of the alternative, where the budget ran out
+with the tree green because nothing was left half-applied. A gate without a reserve
+would have approved exactly the changes that make an agent stop in the middle of a
+refactor at the bell.
+
+Durations accept `90s`, `8m`, `1h30m`, or a bare number of minutes.
+
+## Tests
+
+```sh
+npm test        # 13 tests, nothing to install; node --test, no framework
+```
 
 ## Contract
 
@@ -29,15 +63,22 @@ Experimenter, AgenticTime, Docker Agent budgets — and what to take from each i
 | --- | --- | --- |
 | `start` | state file with start time + budget | `0` |
 | `check` | nothing | `0` while running, `2` once expired |
+| `check --needs <dur>` | nothing | `0` if the task and reserve fit, `2` if they do not |
+| any, on bad input | nothing | `64` for a bad flag, bad duration, corrupt state, or no timer |
 
-`check` exits `2`, not `1`, so it can't be mistaken for a crash. The shell idiom
-is `node time.mjs check || <stop work>`, and inside a script on `set -e` the
-non-zero exit halts it.
+`2` means *do not start*, whether because the budget is spent or because the task
+would not fit in what is left — one number for one decision, and the output says
+which. It is never `1`, so a budget stop cannot be mistaken for a crash, and it is
+never `0` on a usage error, so a typo in a flag cannot silently approve work. The
+shell idiom is `node time.mjs check || <stop work>`, and inside a script on `set -e`
+the non-zero exit halts it.
 
 ## Environment
 
 - `MINUTES` — budget length, default `30`.
 - `TIMER_STATE` — state file path, default `/tmp/time-timer.json`.
+- `--reserve <dur>` — the verification reserve the gate adds to `--needs`, default
+  `3m`; pass `--reserve 0` only when there is genuinely nothing to verify.
 
 State is a single JSON object (`{ start, minutes }`) so it survives the process
 that set it and any tool call in between. Only one session is tracked at a time;
