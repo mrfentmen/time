@@ -110,5 +110,5 @@ export async function runSession({
       note: code === 0 ? "ran" : `command exited ${code}`,
     });
   }
-  return { results, agentOutput: `scripted ${arm} session`, agentStderrTail: "" };
+  return { results, code: 0, killed: false, agentOutput: `scripted ${arm} session`, agentStderrTail: "" };
 }

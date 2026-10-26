@@ -81,6 +81,7 @@ export async function run({ task, arm, tool, reserveMs, workDir, cmd, capMs, sta
     finished,
     runtimeMs,
     note,
+    agentExit: code,
     agentOutput: out.trim().slice(-500),
     agentStderrTail: err.trim().slice(-300),
   };

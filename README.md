@@ -91,7 +91,7 @@ gate that quietly guesses is worse than one that says it does not know.
 ## Tests
 
 ```sh
-npm test        # 52 tests, nothing to install; node --test, no framework
+npm test        # 56 tests, nothing to install; node --test, no framework
 ```
 
 ## The bench
@@ -152,6 +152,11 @@ The reasoning behind the protocol, the confounds, and what would falsify it are 
   18% utilisation. With the ledger jittered ±40% (E2h pilot) the calibrated arm still
   starts 18% more work, and the noise shows up as one starved refusal rather than a
   half-finished task.
+- **E4a**, the same cell on **opencode** (different harness *and* model): blind 41%
+  [35–48] and aware 6% [3–9], within a point of codex. The gated arm's zero survived
+  its four completed sessions before opencode's free tier ran out — and those quota
+  failures had been scoring as 57% starved refusals until a guard was added, so the
+  file is marked partial instead of being quietly published.
 
 ## Contract
 

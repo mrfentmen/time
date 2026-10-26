@@ -31,6 +31,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { formatDuration, parseDuration } from "../lib/duration.mjs";
 import { summarize } from "../lib/metrics.mjs";
+import { AgentFailure, assertAgentSucceeded } from "../lib/agent.mjs";
 import { run as scripted, runSession as scriptedSession } from "./adapters/scripted.mjs";
 import { run as cli } from "./adapters/cli.mjs";
 import { run as cliSession } from "./adapters/session.mjs";
@@ -121,6 +122,21 @@ const sessionAdapter =
 const tasks = JSON.parse(readFileSync(taskFile, "utf8"));
 const records = [];
 
+// An agent that failed to run did not decline the work. Stop the run instead of
+// scoring the absence of markers as a refusal — E4a learned this the hard way.
+function guard(attempt) {
+  try {
+    assertAgentSucceeded(attempt);
+  } catch (error) {
+    if (error instanceof AgentFailure) {
+      console.error(`\n${error.message}`);
+      console.error("refusing to score this session; no results file was written.");
+      process.exit(65);
+    }
+    throw error;
+  }
+}
+
 function makeWorkDir(task) {
   const dir = mkdtempSync(join(tmpdir(), "time-bench-"));
   for (const [name, content] of Object.entries(task.files ?? {})) {
@@ -190,6 +206,12 @@ async function runOne({ task, arm, sessionStart, sessionBudgetMs, remainingMs, s
     cmd,
     capMs,
     model,
+  });
+  guard({
+    code: result.agentExit ?? 0,
+    killed: /killed at cap/.test(result.note ?? ""),
+    agentOutput: result.agentOutput,
+    agentStderrTail: result.agentStderrTail,
   });
   const record = {
     taskId: task.id,
@@ -263,6 +285,12 @@ if (scenario === "session" && invocation === "per-session") {
         estimateScale,
         ledgerPath,
         model,
+      });
+      guard({
+        code: outcome.code,
+        killed: outcome.killed,
+        agentOutput: outcome.agentOutput,
+        agentStderrTail: outcome.agentStderrTail,
       });
       for (const result of outcome.results) {
         records.push(

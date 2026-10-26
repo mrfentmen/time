@@ -422,9 +422,59 @@ turns into idle time, not into a half-finished task.
 itself: both arms are at zero premature starts, so the comparison here is work done,
 not risk avoided.
 
+# E4a: the same cell on a second harness, 2026-10-25 (partial)
+
+Every run above used the codex CLI. An effect that only exists there is a fact about
+codex, so this replicates E2e's 40s cell on **opencode v2.0.28** with
+`opencode/glm-5.3-flash-free`, ten repeats per arm intended. Records:
+[`bench/results/e4a-40s-opencode.json`](bench/results/e4a-40s-opencode.json) — marked
+`partial`, for the reason below.
+
+| arm | opencode | codex (E2e) |
+|---|---|---|
+| blind | **49/120 (41%)** [35–48] | 46/120 (38%) [29–48] |
+| aware | **7/120 (6%)** [3–9] | 8/120 (7%) [3–10] |
+| gated | **0/48, none in 4 sessions** | 0/120, none in 10 sessions |
+
+## What replicates
+
+**The clock's effect is not a codex artefact.** Blind overruns the pot at 41% and
+aware at 6% — within a point of codex's 38% and 7%, with overlapping intervals and
+similar per-session overhead (2.2–4.3s per decision against 2.4–2.8s). On both
+harnesses, a cheap clock removes about five sixths of the premature starts, and the
+remaining difference between aware and gated is small either way.
+
+**The gate still holds at zero** in the four sessions that completed, with 42%
+utilisation and no starved refusal — the same shape as codex's 0/120 at 52%.
+
+## What broke, and what it would have published
+
+opencode's free tier has a usage ceiling, and the run hit it four sessions into the
+gated arm. Each failed session exited in 0.2s with no output, and the bench scored
+twelve missing task markers as twelve refusals: **57% starved refusals, 18%
+utilisation, 0% premature**. That is exactly the shape of "the gate starves a
+session" — the finding the two metrics exist to expose — and it was a quota error.
+
+The guard now aborts the run on a non-zero agent exit, prints the agent's own message
+("Free usage limit reached"), and writes no results file; the six invalid sessions
+were removed from this record rather than re-scored, and the file carries
+`partial.excludedSessions`. This is the second instrument failure of the series that
+looked like a result (the first was E2d's `<cost in ms>` placeholder), and the reason
+the bench prints its confounds rather than only its totals.
+
+## Limits
+
+- The suite and the model both changed, so nothing here separates harness from model.
+- The gated arm has **four valid sessions**; its zero is a replication of a direction,
+  not a rate.
+- The free tier's ceiling makes long cells fragile; a paid or authenticated provider is
+  the fix, not a retry loop.
+
 ## Next
 
-1. **E2i** — this cell at ten repeats per arm, with a ledger built from *real*
+1. **E4b** — finish the gated arm (ten sessions) once a second provider is available,
+   and add a third harness so harness and model can be separated.
+2. **E2i** — this cell at ten repeats per arm, with a ledger built from *real*
    `plan`/`done` sessions rather than jittered seed data (E3's data, once there is
    some).
 2. **E2f** — the same ten-session cell with wrong estimates but no calibrated arm,

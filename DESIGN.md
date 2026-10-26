@@ -165,7 +165,8 @@ seconds, so budgets in the tens of seconds stop being startup measurements.
 | E2g | does calibration rescue a gate fed wrong estimates? | 40s cell, estimates ×2.6, 4 arms (adds `gated-cal`), 3 repeats | 144 | **run** — calibrated arm starts 29% more work at zero premature starts |
 | E2h | does that survive a ledger as noisy as real history? | same cell, ledger jittered ±40%, 2 gate arms, 5 repeats | 120 | **pilot** — +18% decisions, one starved refusal, zero premature |
 | E3 | does the calibration loop make the gate's estimates honest? | ledger bias per class over ≥5 sessions | — | instrument built, needs use |
-| E4 | does the effect hold across models? | E2 with a second harness | 324 | not run |
+| E4a | does the effect hold on a second harness? | E2e cell under opencode v2.0.28 + a free model | 288 valid | **partial** — blind 41% [35–48], aware 6% [3–9], gated 0 in 4 valid sessions; free-tier quota cut the arm short |
+| E4b | can harness and model be separated? | third harness, gated arm completed | — | not run |
 
 Cost of E1: nine runs of a coding-agent CLI, about five minutes and ~200k tokens.
 Cost of E2: a few hundred runs; at AgentTime's scale (3,442 runs, ~$93k) this is

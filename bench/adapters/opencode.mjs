@@ -70,6 +70,7 @@ export async function run({ task, arm, tool, reserveMs, workDir, capMs, statePat
     finished,
     runtimeMs,
     note: killed ? "killed at cap" : `agent exited ${code}`,
+    agentExit: code,
     agentOutput: out.trim().slice(-500),
     agentStderrTail: err.trim().slice(-300),
   };
