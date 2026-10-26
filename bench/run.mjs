@@ -6,6 +6,15 @@
 //   node bench/run.mjs --scenario refusal --adapter scripted --tasks bench/tasks/demo.json
 //   node bench/run.mjs --adapter cli --cmd "codex exec --skip-git-repo-check --ephemeral -s workspace-write" \
 //     --tasks bench/tasks/refusal.json --scenario refusal --budget 30s --repeats 3
+//   node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+//     --tasks bench/tasks/e2.json --budget 40s --estimate-scale 2.6 \
+//     --calibration-from bench/results/e2e-40s.json --calibration-jitter 0.4 \
+//     --arms gated,gated-cal --repeats 5 --out bench/results/e2h-40s-noisy-ledger.json
+//
+// Flags that change what the agent is told, not what is measured:
+//   --estimate-scale N        multiply every declared cost by N (2.6 = AgentTime's miss)
+//   --calibration-from FILE   seed a ledger from a previous result file
+//   --calibration-jitter X    perturb that ledger by up to ±X, deterministically
 //
 // Scenarios
 //   session   one shared pot of time, tasks taken in order until it is gone
