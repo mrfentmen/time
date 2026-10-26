@@ -66,7 +66,13 @@ for (const file of files) {
       String(grouped.length),
       String(stats.decisions),
       `${stats.premature} (${pct(stats.rate)})`,
-      stats.interval.low === null ? "—" : `[${pct(stats.interval.low)}, ${pct(stats.interval.high)}]`,
+      // A zero event count makes the bootstrap degenerate, and printing [0%, 0%]
+      // would read as certainty. It means "none seen", which is not the same claim.
+      stats.premature === 0
+        ? `none in ${stats.sessions} session${stats.sessions === 1 ? "" : "s"}`
+        : stats.interval.low === null
+          ? "—"
+          : `[${pct(stats.interval.low)}, ${pct(stats.interval.high)}]`,
       `${own.filter((record) => record.starvedRefusal).length}`,
       pct(utilisation),
       logs.length === 0 || decisions === 0 ? "—" : one((wallMs - workMs) / decisions / 1000),

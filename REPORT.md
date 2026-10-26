@@ -215,11 +215,16 @@ records, same twelve tasks, same 60s budget. Records:
 
 ## Result
 
-| arm | premature | after the pot was empty | started | refused | starved | utilisation |
-|---|---|---|---|---|---|---|
-| blind | **6/36 (17%)** | 3 | 36/36 | 0 | 0 | 76% |
-| aware | **1/36 (3%)** | 0 | 36/36 | 0 | 0 | 76% |
-| gated | **0/36 (0%)** | 0 | 34/36 | 2 | 0 | 68% |
+| arm | premature | 95% CI (sessions) | after the pot was empty | started | refused | starved | utilisation |
+|---|---|---|---|---|---|---|---|
+| blind | **6/36 (17%)** | 8–25% | 3 | 36/36 | 0 | 0 | 76% |
+| aware | **1/36 (3%)** | 0–8% | 0 | 36/36 | 0 | 0 | 76% |
+| gated | **0/36 (0%)** | none in 3 sessions | 0 | 34/36 | 2 | 0 | 68% |
+
+The interval resamples sessions, not decisions (`bench/analyze.mjs`), because records
+inside one session move together. Gated's zero is printed as "none in 3 sessions"
+rather than an interval: with no event the bootstrap collapses to a point, and a point
+would read as certainty the data does not support.
 
 Per session:
 
