@@ -103,6 +103,11 @@ node bench/run.mjs --adapter cli --scenario refusal --tasks bench/tasks/refusal.
 node bench/run.mjs --adapter cli --invocation per-session --scenario session \
   --tasks bench/tasks/e2.json --budget 60s --arms blind,aware,gated \
   --out bench/results/e2b-60s.json
+
+# the same cell three times, which is what a rate needs
+node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+  --tasks bench/tasks/e2.json --budget 60s --repeats 3 --arms blind,aware,gated \
+  --out bench/results/e2c-60s.json
 ```
 
 The reasoning behind the protocol, the confounds, and what would falsify it are in
@@ -112,10 +117,12 @@ The reasoning behind the protocol, the confounds, and what would falsify it are 
 - **E2**, 108 runs over twelve tasks at three budgets: **42% premature starts for
   both blind and aware, 0% for gated** — at the cost of refusing half the offers and
   leaving up to 38% of the budget idle. Read the two numbers together.
-- **E2b**, the same ladder with one invocation per session: per-decision overhead fell
-  from 8–12s to 1.2–3.4s, the aware arm went from 10/12 premature starts to **0/12**,
-  and the gate matched it at 0 while leaving more of the budget idle. That partially
-  refutes the headline claim, and `REPORT.md` says so first rather than last.
+- **E2b / E2c**, the same ladder with one invocation per session: per-decision overhead
+  fell from 8–12s to 1–3s, and at a 60s budget premature starts went **blind 6/36
+  (17%) → aware 1/36 (3%) → gated 0/36**, the gate paying ~8 points of utilisation.
+  A cheap clock does most of the work a gate did in E2; the gate closes the rest.
+  E2c is the repeat that corrected an over-read E2b, and `REPORT.md` says so first
+  rather than last.
 
 ## Contract
 

@@ -17,14 +17,17 @@ If that is false — if a clock alone produces the same behaviour — then the t
 here is wrong and this repo should say so in public, because the entire field is
 currently shipping clocks.
 
-**E2b qualified it, and the qualification is the more useful sentence.** With one
-agent invocation per session instead of one per task, a cheap clock *is* consulted:
-the aware arm went from 10/12 premature starts to 0/12, and the gate scored the same
-0 while spending more of the budget idle. So the claim as written holds in a per-task
-harness — the shape most agent benchmarks use — and fails in a continuous session.
-What survives is narrower and testable: **a gate substitutes for a clock an agent
-will consult, and buys least where the agent already has the session in view.**
-[`REPORT.md`](REPORT.md) carries both runs; nothing here is retracted quietly.
+**E2b and E2c qualified it, and the qualification is the more useful sentence.** With
+one agent invocation per session instead of one per task, a cheap clock *is*
+consulted: over three repeats at a 60s budget the aware arm fell from 10/12
+premature starts to **1/36 (3%)**, against blind at 6/36 (17%) — and the gate still
+went one better at **0/36**, for about 8 points of utilisation. So the claim as
+written holds in a per-task harness — the shape most agent benchmarks use — and
+mostly fails in a continuous session, where the gate keeps a small residual edge
+instead of being the only thing that works. What survives is narrower and testable:
+**a gate substitutes for a clock an agent will consult, and buys least where the
+agent already has the session in view.** [`REPORT.md`](REPORT.md) carries every run,
+including the one where an intermediate reading was over-stated and corrected.
 
 ## Three things, in order of what they cost to be wrong about
 
@@ -131,6 +134,7 @@ seconds, so budgets in the tens of seconds stop being startup measurements.
 | E1 | does the gate change whether work is started? | refusal, 1 task, 3 arms × 3 repeats | 9 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2 | does that hold across a session with real choices? | session, 12 tasks, 3 arms × 3 budgets × 1 repeat | 108 | **run** — see [`REPORT.md`](REPORT.md) |
 | E2b | does the ladder survive paying startup once, in one invocation? | session, 12 tasks, 3 arms × 2 budgets (60s, 120s), per-session invocation | 6 | **run** — see [`REPORT.md`](REPORT.md) |
+| E2c | does the E2b reading survive repetition? | 60s cell × 3 repeats, 3 arms | 108 | **run** — see [`REPORT.md`](REPORT.md) |
 | E3 | does the calibration loop make the gate's estimates honest? | ledger bias per class over ≥5 sessions | — | instrument built, needs use |
 | E4 | does the effect hold across models? | E2 with a second harness | 324 | not run |
 
@@ -146,9 +150,11 @@ The thesis dies if `aware` ≈ `gated` on premature starts across E1 and E2, or 
 outcomes get published in `REPORT.md` with the records attached; a tool that
 silently works around a negative result is worth less than one that reports it.
 
-The first clause fired in E2b: at a 60s budget in a continuous session, aware and
-gated both scored 0 premature starts, and gated used *less* of the budget. That is
-reported as a partial refutation, with the instrument change that caused it named.
+The first clause appeared to fire in E2b: at a 60s budget in a continuous session,
+aware and gated both scored 0 premature starts, and gated used *less* of the budget.
+Three repeats (E2c) walked it back to a narrow survive — aware 1/36, gated 0/36 — so
+the clause is reported as weakened rather than confirmed, with the instrument change
+that caused it named and the correction published alongside the first reading.
 
 ## What this does not claim
 

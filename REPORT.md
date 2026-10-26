@@ -179,12 +179,14 @@ one invocation the agent keeps the session in view, so a cheap `check` is someth
 actually consults between decisions, whereas a fresh per-task prompt has no session
 to pace.
 
-**The gate bought nothing over the clock at this budget.** Both scored 0, and the
+**The gate bought nothing over the clock in this session.** Both scored 0, and the
 gate paid for its 0 in idle time: 54% utilisation against 64%, two refusals against
 one, 1.8s of the pot left unused. Its refusals were correct, but so was the clock's
 one, and the clock's owner reasoned about the fit itself. What E1 and E2 measured as
 the gate's advantage may be the advantage of a clock an agent will *use* — which is a
 statement about continuity and prompt shape, not about the gate as a separate idea.
+E2c repeats this cell three times and corrects this paragraph: the gate does catch a
+decision the clock misses.
 
 **Continuity alone is not enough.** The blind arm had the same session context and
 still ran 16.7s past the bell, starting two tasks at zero. Session shape lowered
@@ -204,11 +206,55 @@ itself. AgentTime's forecasts miss by 2.6–3.8×; here the estimates are perfec
 flatters all three arms and the gate least.
 - One model, one harness, synthetic tasks. Same caveats as E2.
 
+# E2c: three repeats at 60s, and a correction
+
+E2b's sharpest sentence — the gate bought nothing over the clock — was drawn from
+**one session per arm**. This repeats that tight cell three times: nine sessions, 108
+records, same twelve tasks, same 60s budget. Records:
+[`bench/results/e2c-60s.json`](bench/results/e2c-60s.json).
+
+## Result
+
+| arm | premature | after the pot was empty | started | refused | starved | utilisation |
+|---|---|---|---|---|---|---|
+| blind | **6/36 (17%)** | 3 | 36/36 | 0 | 0 | 76% |
+| aware | **1/36 (3%)** | 0 | 36/36 | 0 | 0 | 76% |
+| gated | **0/36 (0%)** | 0 | 34/36 | 2 | 0 | 68% |
+
+Per session:
+
+- **blind** — 3, 2 and 1 premature starts; all three sessions ran past the bell
+  (81.4s, 76.5s, 63.7s against 60s) because it kept starting after the pot was empty.
+- **aware** — one bad start: `t12-deploy` (7s) with **3.4s** left. The other two
+  sessions finished clean.
+- **gated** — refused `t12` in two sessions, at 0ms and 3524ms left, both correctly;
+  in the third session everything fitted. No starved refusals.
+
+## Correction
+
+**The gate caught the decision awareness missed.** Over three sessions the aware arm
+started 7s of work with 3.4s left; the gated arm never did, made both of its refusals
+correctly, and paid about 8 points of utilisation for it. E2b called the gate
+redundant on the strength of one session where both scored 0, and that reading does
+not survive repetition.
+
+The correction also has a size. 1/36 against 0/36 is **one decision**, not a
+difference between policies: it says E2b's sentence was over-read, not that the gate
+is vindicated. Three sessions per arm cannot separate 3% from 0%.
+
+## The revised picture at 60s
+
+In a continuous session: **blind 17% → aware 3% → gated 0%** premature starts.
+Continuity and a cheap clock remove most of the failure; the gate removes the rest,
+for about 8 points of utilisation and no starved refusals. The gate is worth
+something, but far less than in E2 — where, with one invocation per task, it was the
+only arm that changed anything at all.
+
 ## Next
 
-1. **E2c** — five repeats of the 60s cell (30 sessions) to put an interval on 3 versus
-   0 and find out whether the aware arm's single correct refusal is a policy or a
-   coincidence.
+1. **E2d** — ten repeats of the tight cell, or a budget tight enough that each session
+   holds more than one at-risk decision. One decision per session is what limits both
+   E2b and E2c: everything interesting happens at `t12`.
 2. **Separate continuity from clock cost** — a per-session aware arm whose clock costs
    a fresh turn, to test the mechanism above directly rather than by inference.
 3. **E4** — repeat E1 and E2b under a second harness, since AgentTime found model
@@ -230,4 +276,9 @@ node bench/run.mjs --adapter cli --scenario refusal --tasks bench/tasks/refusal.
 node bench/run.mjs --adapter cli --invocation per-session --scenario session \
   --tasks bench/tasks/e2.json --budget 60s --reserve 1000ms --arms blind,aware,gated \
   --out bench/results/e2b-60s.json
+
+# E2c
+node bench/run.mjs --adapter cli --invocation per-session --scenario session \
+  --tasks bench/tasks/e2.json --budget 60s --reserve 1000ms --repeats 3 \
+  --arms blind,aware,gated --out bench/results/e2c-60s.json
 ```
