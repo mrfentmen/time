@@ -59,6 +59,21 @@ if (!Number.isFinite(estimateScale) || estimateScale <= 0) {
 // A `gated-cal` arm reads its costs from a ledger, so the ledger has to come from
 // somewhere with measurements in it: a previous result file, one entry per task.
 const calibrationFrom = flag("--calibration-from", null);
+// A real ledger is noisy and class-level, not a table of exact task costs. Jitter
+// makes the seed look like history instead of hindsight, deterministically so the
+// same seed file and factor always produce the same ledger.
+const calibrationJitter = Number(flag("--calibration-jitter", "0"));
+if (!Number.isFinite(calibrationJitter) || calibrationJitter < 0 || calibrationJitter >= 1) {
+  console.error(`--calibration-jitter must be in [0, 1) (got ${flag("--calibration-jitter", "0")})`);
+  process.exit(64);
+}
+const jitterFor = (taskId) => {
+  if (calibrationJitter === 0) return 1;
+  let hash = 2166136261;
+  for (const char of taskId) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
+  const unit = (hash % 10_000) / 10_000;
+  return 1 + (unit * 2 - 1) * calibrationJitter;
+};
 const calibrationRecords = calibrationFrom
   ? (JSON.parse(readFileSync(calibrationFrom, "utf8")).records ?? [])
   : [];
@@ -121,7 +136,15 @@ function writeLedger(dir) {
         at,
       }),
     );
-    lines.push(JSON.stringify({ type: "done", id: taskId, at: at + 1, actualMs: record.trueCostMs, status: "ok" }));
+    lines.push(
+      JSON.stringify({
+        type: "done",
+        id: taskId,
+        at: at + 1,
+        actualMs: Math.round(record.trueCostMs * jitterFor(taskId)),
+        status: "ok",
+      }),
+    );
     index++;
   }
   writeFileSync(path, `${lines.join("\n")}\n`);
@@ -350,6 +373,7 @@ if (out) {
     reserveMs,
     estimateScale,
     calibrationFrom,
+    calibrationJitter,
     repeats,
     tasks: tasks.map((t) => ({ id: t.id, class: t.class, trueCostMs: t.trueCostMs })),
     summary: rows,

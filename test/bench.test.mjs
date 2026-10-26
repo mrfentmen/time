@@ -213,11 +213,16 @@ test("the calibrated arm is refused without a history and runs with one", async 
       ],
     }),
   );
-  const withHistory = await runIt(["--calibration-from", seedFile]);
+  const withHistory = await runIt(["--calibration-from", seedFile, "--calibration-jitter", "0.4"]);
   assert.equal(withHistory.code, 0, withHistory.stderr);
   const payload = JSON.parse(readFileSync(join(dir, "out.json"), "utf8"));
   assert.equal(payload.calibrationFrom, seedFile);
+  assert.equal(payload.calibrationJitter, 0.4);
   assert.ok(payload.records.every((record) => record.arm === "gated-cal"));
+
+  const bad = await runIt(["--calibration-from", seedFile, "--calibration-jitter", "1"]);
+  assert.equal(bad.code, 64, "a jitter of 1 could make a cost zero");
+  assert.match(bad.stderr, /calibration-jitter must be in/);
 });
 
 test("the session scenario shares one pot and records overruns", async () => {
