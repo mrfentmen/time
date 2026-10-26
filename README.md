@@ -122,7 +122,10 @@ The reasoning behind the protocol, the confounds, and what would falsify it are 
   (17%) → aware 1/36 (3%) → gated 0/36**, the gate paying ~8 points of utilisation.
   A cheap clock does most of the work a gate did in E2; the gate closes the rest.
   E2c is the repeat that corrected an over-read E2b, and `REPORT.md` says so first
-  rather than last.
+  rather than last. **E2d** repeats the ordering at a 40s budget (25% → 8% → 0%), and
+  documents the prompt bug it caught: a `<cost in ms>` placeholder that made the gate
+  refuse an entire session, which read exactly like a real result until the
+  transcript was opened.
 
 ## Contract
 
