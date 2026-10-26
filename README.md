@@ -31,6 +31,17 @@ node time.mjs check --needs 8m && start_the_task || leave_it_for_next_time
 # elapsed 12m 00s | remaining 17m 59s | needs 8m 00s + 3m 00s reserve = 11m 00s | fits, 6m 59s spare
 ```
 
+```sh
+# record what things actually cost, so tomorrow's estimate is not a guess
+node time.mjs plan auth-review --estimate 8m --class review
+node time.mjs done
+# done: auth-review — 9m 12s (estimated 8m 00s, 1.15x)
+
+node time.mjs report
+# class     n  est p50  act p50  act p90  bias
+# review    4  8m 00s   9m 12s   11m 40s  1.22x
+```
+
 ## The gate
 
 `check` answers "how much time is left". `check --needs 8m` answers the question
@@ -49,13 +60,49 @@ with the tree green because nothing was left half-applied. A gate without a rese
 would have approved exactly the changes that make an agent stop in the middle of a
 refactor at the bell.
 
-Durations accept `90s`, `8m`, `1h30m`, or a bare number of minutes.
+Durations accept `90s`, `8m`, `1h30m`, `1500ms`, or a bare number of minutes.
+
+## Calibration
+
+`plan` and `done` write an append-only ledger (`TIME_LEDGER`, default
+`.time/ledger.jsonl`); `report` turns it into per-class percentiles and a **bias
+factor** — the geometric mean of actual/estimate, which is the number to multiply
+an estimate by to make it honest. 1.22× means everything is taking 22% longer than
+claimed.
+
+The reason is empirical rather than tidy. AgentTime measured forecasts across three
+models and found them wrong by a stable factor in a stable direction: 63–83% too
+high, typical misses of 2.6×–3.8×. A bias that stable is not noise, it is a
+correction waiting to be applied — per class, from your own data.
 
 ## Tests
 
 ```sh
-npm test        # 13 tests, nothing to install; node --test, no framework
+npm test        # 33 tests, nothing to install; node --test, no framework
 ```
+
+## The bench
+
+`bench/` is the instrument the rest of this file is an argument for: three arms
+(`blind`, no clock; `aware`, remaining time; `gated`, a yes/no decision), a
+supervisor that owns the clock, and ground truth from marker files rather than the
+agent's self-report. It records **premature starts** (began work that could not be
+finished and verified in the time left) beside **starved refusals** (declined work
+that would have fitted), because either one alone is trivially gameable.
+
+```sh
+# no tokens: proves the instrument separates the arms
+node bench/run.mjs --adapter scripted --scenario refusal --tasks bench/tasks/demo.json
+
+# a real agent, one task, three arms, three repeats
+node bench/run.mjs --adapter cli --scenario refusal --tasks bench/tasks/refusal.json \
+  --arms blind,aware,gated --repeats 3 --reserve 2000ms --cap 90s \
+  --out bench/results/live-refusal-$(date +%F).json
+```
+
+The reasoning behind the protocol, the confounds, and what would falsify it are in
+[`DESIGN.md`](DESIGN.md). The first live run — nine runs, one task, one model — is in
+[`REPORT.md`](REPORT.md): blind 3/3 premature starts, aware 3/3, gated 0/3.
 
 ## Contract
 
@@ -64,6 +111,8 @@ npm test        # 13 tests, nothing to install; node --test, no framework
 | `start` | state file with start time + budget | `0` |
 | `check` | nothing | `0` while running, `2` once expired |
 | `check --needs <dur>` | nothing | `0` if the task and reserve fit, `2` if they do not |
+| `plan` / `done` | one line each to the ledger | `0`, or `64` if a plan is already open |
+| `report` | nothing | `0`, including on an empty ledger |
 | any, on bad input | nothing | `64` for a bad flag, bad duration, corrupt state, or no timer |
 
 `2` means *do not start*, whether because the budget is spent or because the task
@@ -77,6 +126,7 @@ the non-zero exit halts it.
 
 - `MINUTES` — budget length, default `30`.
 - `TIMER_STATE` — state file path, default `/tmp/time-timer.json`.
+- `TIME_LEDGER` — ledger path, default `.time/ledger.jsonl`.
 - `--reserve <dur>` — the verification reserve the gate adds to `--needs`, default
   `3m`; pass `--reserve 0` only when there is genuinely nothing to verify.
 

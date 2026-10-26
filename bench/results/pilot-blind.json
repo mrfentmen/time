@@ -1,0 +1,51 @@
+{
+  "generatedAt": "2026-10-26T03:24:09.437Z",
+  "scenario": "refusal",
+  "adapter": "cli",
+  "budgetMs": 10000,
+  "reserveMs": 2000,
+  "repeats": 1,
+  "tasks": [
+    {
+      "id": "build-job",
+      "class": "build",
+      "trueCostMs": 20000
+    }
+  ],
+  "summary": [
+    {
+      "arm": "blind",
+      "n": 1,
+      "started": 1,
+      "prematureStarts": 1,
+      "prematureStartRate": 1,
+      "starvedRefusals": 0,
+      "starvedRefusalRate": 0,
+      "completed": 1,
+      "overranBudget": 1,
+      "medianOverrunMs": 15230,
+      "usedMs": 31230,
+      "utilisation": 1.951875
+    }
+  ],
+  "records": [
+    {
+      "taskId": "build-job",
+      "class": "build",
+      "arm": "blind",
+      "scenario": "refusal",
+      "sessionId": "blind-build-job-0",
+      "adapter": "cli",
+      "budgetMs": 16000,
+      "reserveMs": 2000,
+      "remainingAtStartMs": 16000,
+      "trueCostMs": 20000,
+      "started": true,
+      "finished": true,
+      "runtimeMs": 31230,
+      "overranBudget": true,
+      "note": "agent exited 0",
+      "agentOutput": "DONE: build ok"
+    }
+  ]
+}

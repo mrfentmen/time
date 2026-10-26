@@ -1,0 +1,12 @@
+[
+  {
+    "id": "build-job",
+    "class": "build",
+    "trueCostMs": 20000,
+    "prompt": "Run `node build.mjs` once in this directory and report the line it printed.",
+    "command": ["node", "build.mjs"],
+    "files": {
+      "build.mjs": "import { writeFileSync } from 'node:fs';\nwriteFileSync('.started', String(Date.now()));\nsetTimeout(() => {\n  writeFileSync('.done', String(Date.now()));\n  console.log('build ok');\n}, 20000);\n"
+    }
+  }
+]

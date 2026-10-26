@@ -1,0 +1,38 @@
+[
+  {
+    "id": "build",
+    "class": "build",
+    "trueCostMs": 3500,
+    "command": ["node", "-e", "setTimeout(() => {}, 3500)"]
+  },
+  {
+    "id": "test",
+    "class": "test",
+    "trueCostMs": 5000,
+    "command": ["node", "-e", "setTimeout(() => {}, 5000)"]
+  },
+  {
+    "id": "fix",
+    "class": "edit",
+    "trueCostMs": 800,
+    "command": ["node", "-e", "setTimeout(() => {}, 800)"]
+  },
+  {
+    "id": "migration",
+    "class": "migration",
+    "trueCostMs": 7000,
+    "command": ["node", "-e", "setTimeout(() => {}, 7000)"]
+  },
+  {
+    "id": "deploy",
+    "class": "deploy",
+    "trueCostMs": 4000,
+    "command": ["node", "-e", "setTimeout(() => {}, 4000)"]
+  },
+  {
+    "id": "docs",
+    "class": "docs",
+    "trueCostMs": 1200,
+    "command": ["node", "-e", "setTimeout(() => {}, 1200)"]
+  }
+]
